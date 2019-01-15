@@ -1,0 +1,150 @@
+{
+  "name": "solitude-debug",
+  "displayName": "Solitude Debug",
+  "version": "0.27.0",
+  "publisher": "andreweinand",
+  "description": "Debug a ethereum transaction using solitude",
+  "author": {
+    "name": "Microsoft Corporation",
+    "email": "aweinand@microsoft.com"
+  },
+  "license": "MIT",
+  "keywords": [
+    "multi-root ready"
+  ],
+  "engines": {
+    "vscode": "^1.18.0",
+    "node": "^7.9.0"
+  },
+  "categories": [
+    "Debuggers"
+  ],
+  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GaetanoMondelli/vscode-solitude-debug.git"
+  },
+  "bugs": {
+    "url": "https://github.com/GaetanoMondelli/vscode-solitude-debug/issues"
+  },
+  "scripts": {
+    "prepublish": "tsc -p ./src",
+    "compile": "tsc -p ./src",
+    "tslint": "tslint ./src/**/*.ts",
+    "watch": "tsc -w -p ./src",
+    "test": "mocha -u tdd ./out/tests/",
+    "postinstall": "node ./node_modules/vscode/bin/install",
+    "package": "vsce package",
+    "publish": "vsce publish"
+  },
+  "dependencies": {
+    "await-notify": "1.0.1",
+    "python-shell": "^1.0.6",
+    "vscode-debugadapter": "1.27.0",
+    "vscode-debugprotocol": "1.27.0"
+  },
+  "devDependencies": {
+    "@types/node": "7.0.55",
+    "@types/mocha": "2.2.48",
+    "typescript": "2.6.2",
+    "mocha": "5.0.1",
+    "vscode": "1.1.17",
+    "vscode-debugadapter-testsupport": "1.27.0",
+    "tslint": "5.9.1",
+    "vsce": "1.37.5"
+  },
+  "main": "./out/extension",
+  "activationEvents": [
+    "onDebug",
+    "onCommand:extension.solitude-debug.getTransaction"
+  ],
+  "contributes": {
+    "configuration": {
+      "type": "object",
+      "title": "Solitude Debug Extension",
+      "properties": {
+        "solitude-exstension-debugger.useWorkspaceFolder": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use workspace folder for solitude.yml file"
+      },
+        "solitude-exstension-debugger.solitudeConfigurationPath": {
+          "type": "string",
+          "default": "${workspaceFolder}",
+          "description": "Path of the solitude.yaml file"
+      },
+      "solitude-exstension-debugger.solitudePath": {
+        "type": "string",
+        "default": "/usr/local/bin/solitude",
+        "description": "Path of the Solitude framework executable"
+    },
+    "solitude-exstension-debugger.pythonPath": {
+      "type": "string",
+      "default": "/usr/bin/python2.7",
+      "description": "Python path and executable"
+    }
+      }},
+    "breakpoints": [
+      {
+        "language": "markdown"
+      }
+    ],
+    "debuggers": [
+      {
+        "type": "solitude",
+        "label": "Solitude Debug",
+        "program": "./out/debugAdapter.js",
+        "runtime": "node",
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "program"
+            ],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Txid of the transaction you want to debug",
+                "default": "${workspaceFolder}/${command:AskForTransaction}"
+              },
+              "stopOnEntry": {
+                "type": "boolean",
+                "description": "Automatically stop after launch.",
+                "default": true
+              },
+              "trace": {
+                "type": "boolean",
+                "description": "Enable logging of the Debug Adapter Protocol.",
+                "default": true
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "solitude",
+            "request": "launch",
+            "name": "Transaction hash id",
+            "program": "${command:AskForTransaction}",
+            "stopOnEntry": true
+          }
+        ],
+        "configurationSnippets": [
+          {
+            "label": "Solitude Debug: Launch",
+            "description": "Debug a ethereum transaction using solitude",
+            "body": {
+              "type": "solitude",
+              "request": "launch",
+              "name": "Transaction hash id",
+              "program": "${command:AskForTransaction}",
+              "stopOnEntry": true
+            }
+          }
+        ],
+        "variables": {
+          "AskForTransaction": "extension.solitude-debug.getTransaction"
+        }
+      }
+    ]
+  }
+}
