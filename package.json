@@ -67,23 +67,24 @@
           "type": "boolean",
           "default": true,
           "description": "Use workspace folder for solitude.yml file"
-      },
+        },
         "solitude-exstension-debugger.solitudeConfigurationPath": {
           "type": "string",
           "default": "${workspaceFolder}",
           "description": "Path of the solitude.yaml file"
-      },
-      "solitude-exstension-debugger.solitudePath": {
-        "type": "string",
-        "default": "/usr/local/bin/solitude",
-        "description": "Path of the Solitude framework executable"
+        },
+        "solitude-exstension-debugger.solitudePath": {
+          "type": "string",
+          "default": "/usr/local/bin/solitude",
+          "description": "Path of the Solitude framework executable"
+        },
+        "solitude-exstension-debugger.pythonPath": {
+          "type": "string",
+          "default": "/usr/bin/python2.7",
+          "description": "Python path and executable"
+        }
+      }
     },
-    "solitude-exstension-debugger.pythonPath": {
-      "type": "string",
-      "default": "/usr/bin/python2.7",
-      "description": "Python path and executable"
-    }
-      }},
     "breakpoints": [
       {
         "language": "markdown"

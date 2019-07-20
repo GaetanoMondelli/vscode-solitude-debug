@@ -52,6 +52,10 @@ export class DebugSession extends LoggingDebugSession {
 		this._runtime.on('stopOnEntry', () => {
 			this.sendEvent(new StoppedEvent('entry', DebugSession.THREAD_ID));
 		});
+		this._runtime.on('infoLocals', (info) => {
+			writeFileSync('/home/gaetano/logs/infodebug.log', JSON.stringify(info),{flag: 'a'});
+
+		})
 		this._runtime.on('stopOnStep', () => {
 			this.sendEvent(new StoppedEvent('step', DebugSession.THREAD_ID));
 		});
@@ -192,7 +196,7 @@ export class DebugSession extends LoggingDebugSession {
 		const frameReference = args.frameId;
 		const scopes = new Array<Scope>();
 		scopes.push(new Scope("Local", this._variableHandles.create("local_" + frameReference), false));
-		scopes.push(new Scope("Global", this._variableHandles.create("global_" + frameReference), true));
+		//scopes.push(new Scope("Global", this._variableHandles.create("global_" + frameReference), true));
 
 		response.body = {
 			scopes: scopes
@@ -204,31 +208,38 @@ export class DebugSession extends LoggingDebugSession {
 
 		const variables = new Array<DebugProtocol.Variable>();
 		const id = this._variableHandles.get(args.variablesReference);
+		const solitude_variable = this._runtime.variables();
+		writeFileSync('/home/gaetano/logs/variablerequest.log', JSON.stringify(solitude_variable),{flag: 'a'});
+		// variables.push(solitude_variable[0])
 		if (id !== null) {
-			variables.push({
-				name: id + "_i",
-				type: "integer",
-				value: "123",
-				variablesReference: 0
+			solitude_variable.forEach(variable => {
+				//writeFileSync('/home/gaetano/logs/variablerequest2.log', JSON.stringify(variable),{flag: 'a'});
+				variables.push(variable)
 			});
-			variables.push({
-				name: id + "_f",
-				type: "float",
-				value: "3.14",
-				variablesReference: 0
-			});
-			variables.push({
-				name: id + "_s",
-				type: "string",
-				value: "hello world",
-				variablesReference: 0
-			});
-			variables.push({
-				name: id + "_o",
-				type: "object",
-				value: "Object",
-				variablesReference: this._variableHandles.create("object_")
-			});
+			// variables.push({
+			// 	name: id + "_i",
+			// 	type: "integer",
+			// 	value: "123",
+			// 	variablesReference: 0
+			// });
+			// variables.push({
+			// 	name: id + "_f",
+			// 	type: "float",
+			// 	value: "3.14",
+			// 	variablesReference: 0
+			// });
+			// variables.push({
+			// 	name: id + "_s",
+			// 	type: "string",
+			// 	value: "hello world",
+			// 	variablesReference: 0
+			// });
+			// variables.push({
+			// 	name: id + "_o",
+			// 	type: "object",
+			// 	value: "Object",
+			// 	variablesReference: this._variableHandles.create("object_")
+			// });
 		}
 
 		response.body = {

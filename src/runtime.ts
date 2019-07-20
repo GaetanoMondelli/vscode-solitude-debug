@@ -21,16 +21,17 @@ export class Runtime extends EventEmitter {
 	private _solitudeConfigurationPath: string;
 	private _pythonPath: string;
 	private _shell;
+	private _variables: any[];
 
 	constructor() {
 		super();
 	}
 
-	public getPythonOptions(txHash: string){
+	public getPythonOptions(txHash: string) {
 		process.chdir(this._solitudeConfigurationPath);
 		type Modetype = "text" | "json" | "binary" | undefined
 		let path = this._solitudeConfigurationPath + '/solitude.yaml'
-		let params = ["--config",path,"debug","--json",txHash]
+		let params = ["--config", path, "debug", "--json", txHash]
 
 		return {
 			mode: "json" as Modetype,
@@ -41,27 +42,45 @@ export class Runtime extends EventEmitter {
 		};
 	}
 
-	public setSolitudeConfigurationPath(path: string){
+	public setSolitudeConfigurationPath(path: string) {
 		this._solitudeConfigurationPath = path
 	}
 
-	public setPythonPath(path: string){
+	public setPythonPath(path: string) {
 		this._pythonPath = path
 	}
 
 	public start(program: string, stopOnEntry: boolean) {
 		let options = this.getPythonOptions(program)
 		writeFileSync('/home/gaetano/logs/options.log', JSON.stringify(options));
-		this._shell =  new PythonShell("solitude.cli.main", options)
+		// this._shell =  new PythonShell("solitude.cli.main", options)
+		this._shell = new PythonShell("solitude", options)
+
 
 		this._shell.on('message', command => {
-			writeFileSync('/home/gaetano/logs/message.log', command);
-			if (command['status'] == 'ok') {
+			writeFileSync('/home/gaetano/logs/message.log', JSON.stringify(command));
+			if (command['response']['type'] == "info_locals") {
+				this._variables = [];
+				for (let variable of command['response']['variables']) {
+					this._variables.push({
+						name: variable['name'],
+						type: "string",
+						value:variable['value_string'],
+						variablesReference: 0
+					});
+				}
+				writeFileSync('/home/gaetano/logs/thisvar.log', JSON.stringify(this._variables), { flag: 'a' });
+			}
+			if (command['status'] == 'ok' && command['response']['code']['path'] != null) {
+				this._shell.send({ command: "info_locals", args: "" })
 				let path = command['response']['code']['path']
 				this.loadSource(path);
 				this._currentLine = command['response']['code']['line_index'];
 				this.sendEvent('stopOnStep');
 				return true;
+			}
+			else {
+				this._shell.send({ command: "step", args: "" })
 			}
 		});
 
@@ -74,6 +93,11 @@ export class Runtime extends EventEmitter {
 
 	public step(reverse = false, event = 'stopOnStep') {
 		this._shell.send({ "command": "step", "args": "" })
+	}
+
+	public variables(): any {
+		//this._shell.send({ command: "info_locals", args: "" })
+		return this._variables;
 	}
 
 	public stack(startFrame: number, endFrame: number): any {
@@ -95,8 +119,8 @@ export class Runtime extends EventEmitter {
 		};
 	}
 
-	public setBreakPoint(path: string, line: number) : SolitudeBreakpoint {
-		const bp = <SolitudeBreakpoint> { verified: false, line, id: this._breakpointId++ };
+	public setBreakPoint(path: string, line: number): SolitudeBreakpoint {
+		const bp = <SolitudeBreakpoint>{ verified: false, line, id: this._breakpointId++ };
 		let bps = this._breakPoints.get(path);
 		if (!bps) {
 			bps = new Array<SolitudeBreakpoint>();
@@ -109,7 +133,7 @@ export class Runtime extends EventEmitter {
 		return bp;
 	}
 
-	public clearBreakPoint(path: string, line: number) : SolitudeBreakpoint | undefined {
+	public clearBreakPoint(path: string, line: number): SolitudeBreakpoint | undefined {
 		let bps = this._breakPoints.get(path);
 		if (bps) {
 			const index = bps.findIndex(bp => bp.line === line);
@@ -133,7 +157,7 @@ export class Runtime extends EventEmitter {
 		}
 	}
 
-	private verifyBreakpoints(path: string) : void {
+	private verifyBreakpoints(path: string): void {
 		let bps = this._breakPoints.get(path);
 		if (bps) {
 			this.loadSource(path);
@@ -155,7 +179,7 @@ export class Runtime extends EventEmitter {
 		}
 	}
 
-	private sendEvent(event: string, ... args: any[]) {
+	private sendEvent(event: string, ...args: any[]) {
 		setImmediate(_ => {
 			this.emit(event, ...args);
 		});

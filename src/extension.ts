@@ -8,6 +8,7 @@ import * as vscode from 'vscode';
 import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
 import { DebugSession } from './debug';
 import * as Net from 'net';
+import { writeFileSync } from 'fs';
 
 /*
  * Set the following compile time flag to true if the
@@ -86,7 +87,7 @@ class ConfigurationProvider implements vscode.DebugConfigurationProvider {
 
 		session.setPyhtonPath(config['pythonPath'])
 
-		if (config['useWorkspaceFolder'] == true && false){
+		if (config['useWorkspaceFolder'] == true){ //&& false){
 			session.setSolitudeConfigurationPath(workspaceFolder)
 		}
 		else{
