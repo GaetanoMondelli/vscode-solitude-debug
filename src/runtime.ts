@@ -24,6 +24,7 @@ export class Runtime extends EventEmitter {
 	private _pythonPath: string;
 	private _shell;
 	private _variables: any[];
+	private _stack : any[];
 
 	constructor() {
 		super();
@@ -62,6 +63,7 @@ export class Runtime extends EventEmitter {
 		this._shell.on('message', command => {
 			writeFileSync('/home/gaetano/logs/message.log', JSON.stringify(command));
 			if (command['response']['type'] == "info_locals") {
+				this._shell.send({ command: "backtrace", args: "" })
 				this._variables = [];
 				for (let variable of command['response']['variables']) {
 					this._variables.push({
@@ -73,7 +75,18 @@ export class Runtime extends EventEmitter {
 				}
 				writeFileSync('/home/gaetano/logs/thisvar.log', JSON.stringify(this._variables), { flag: 'a' });
 			}
-			if (command['status'] == 'ok' && command['response']['code']['path'] != null) {
+			else if (command['response']['type'] == "backtrace") {
+				this._stack = [];
+				for (let frame of command['response']['frames']) {
+					this._stack.push({
+						index: frame.index,
+						name: `${frame.description}(${1})`,
+						file: this._sourceFile,
+						line: this._currentLine
+					});
+				}
+			}
+			else if (command['status'] == 'ok' && command['response']['code']['path'] != null) {
 				this._shell.send({ command: "info_locals", args: "" })
 				let path = command['response']['code']['path']
 				this.loadSource(path);
@@ -90,6 +103,7 @@ export class Runtime extends EventEmitter {
 	}
 
 	public continue(reverse = false) {
+		this._notInterrupted = true;
 		this._shell.send({ command: "step", args: "" })
 	}
 
@@ -103,21 +117,9 @@ export class Runtime extends EventEmitter {
 	}
 
 	public stack(startFrame: number, endFrame: number): any {
-		const words = this._sourceLines[this._currentLine].trim().split(/\s+/);
-
-		const frames = new Array<any>();
-		for (let i = startFrame; i < Math.min(endFrame, words.length); i++) {
-			const name = words[i];
-			frames.push({
-				index: i,
-				name: `${name}(${i})`,
-				file: this._sourceFile,
-				line: this._currentLine
-			});
-		}
 		return {
-			frames: frames,
-			count: words.length
+			frames: this._stack,
+			count: this._stack.length
 		};
 	}
 

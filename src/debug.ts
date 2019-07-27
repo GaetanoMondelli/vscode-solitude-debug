@@ -216,30 +216,6 @@ export class DebugSession extends LoggingDebugSession {
 				//writeFileSync('/home/gaetano/logs/variablerequest2.log', JSON.stringify(variable),{flag: 'a'});
 				variables.push(variable)
 			});
-			// variables.push({
-			// 	name: id + "_i",
-			// 	type: "integer",
-			// 	value: "123",
-			// 	variablesReference: 0
-			// });
-			// variables.push({
-			// 	name: id + "_f",
-			// 	type: "float",
-			// 	value: "3.14",
-			// 	variablesReference: 0
-			// });
-			// variables.push({
-			// 	name: id + "_s",
-			// 	type: "string",
-			// 	value: "hello world",
-			// 	variablesReference: 0
-			// });
-			// variables.push({
-			// 	name: id + "_o",
-			// 	type: "object",
-			// 	value: "Object",
-			// 	variablesReference: this._variableHandles.create("object_")
-			// });
 		}
 
 		response.body = {
