@@ -1,6 +1,8 @@
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { EventEmitter } from 'events';
 import { PythonShell } from 'python-shell';
+import * as vscode from 'vscode';
+
 
 export interface SolitudeBreakpoint {
 	id: number;

@@ -8,7 +8,7 @@ import * as vscode from 'vscode';
 import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
 import { DebugSession } from './debug';
 import * as Net from 'net';
-import { writeFileSync } from 'fs';
+import {existsSync} from 'fs';
 
 /*
  * Set the following compile time flag to true if the
@@ -68,7 +68,12 @@ class ConfigurationProvider implements vscode.DebugConfigurationProvider {
 				this._server = Net.createServer(socket => {
 					const session = new DebugSession();
 					session.setRunAsServer(true);
-					if(folder) this.setSolitudePreference(session, folder.uri.path)
+					let solitudeConfigPath = '';
+					if(folder)
+						solitudeConfigPath =  this.setSolitudePreference(session, folder.uri.path) + '/solitude.yml'
+					if (solitudeConfigPath == '' || !existsSync(solitudeConfigPath)) {
+						return vscode.window.showErrorMessage(`Configuration cannot be found: ${solitudeConfigPath}. Please check solitude settings.`)
+					}
 					session.start(<NodeJS.ReadableStream>socket, socket);
 				}).listen(0);
 			}
@@ -81,7 +86,7 @@ class ConfigurationProvider implements vscode.DebugConfigurationProvider {
 		return config;
 	}
 
-	setSolitudePreference(session: DebugSession, workspaceFolder: string){
+	setSolitudePreference(session: DebugSession, workspaceFolder: string) : string {
 
 		let config = vscode.workspace.getConfiguration('solitude-exstension-debugger');
 
@@ -89,10 +94,12 @@ class ConfigurationProvider implements vscode.DebugConfigurationProvider {
 
 		if (config['useWorkspaceFolder'] == true){ //&& false){
 			session.setSolitudeConfigurationPath(workspaceFolder)
+			return workspaceFolder
 		}
 		else{
 			let path = config['solitudeConfigurationPath']
 			session.setSolitudeConfigurationPath(path)
+			return path
 		}
 	}
 
