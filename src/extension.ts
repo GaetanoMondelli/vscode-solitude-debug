@@ -70,7 +70,7 @@ class ConfigurationProvider implements vscode.DebugConfigurationProvider {
 					session.setRunAsServer(true);
 					let solitudeConfigPath = '';
 					if(folder)
-						solitudeConfigPath =  this.setSolitudePreference(session, folder.uri.path) + '/solitude.yml'
+						solitudeConfigPath =  this.setSolitudePreference(session, folder.uri.path) + '/solitude.yaml'
 					if (solitudeConfigPath == '' || !existsSync(solitudeConfigPath)) {
 						return vscode.window.showErrorMessage(`Configuration cannot be found: ${solitudeConfigPath}. Please check solitude settings.`)
 					}
