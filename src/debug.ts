@@ -54,7 +54,6 @@ export class DebugSession extends LoggingDebugSession {
 		});
 		this._runtime.on('infoLocals', (info) => {
 			writeFileSync('/home/gaetano/logs/infodebug.log', JSON.stringify(info),{flag: 'a'});
-
 		})
 		this._runtime.on('stopOnStep', () => {
 			this.sendEvent(new StoppedEvent('step', DebugSession.THREAD_ID));
@@ -85,8 +84,6 @@ export class DebugSession extends LoggingDebugSession {
 	}
 
 	public setPyhtonPath(path: string){
-		writeFileSync('/home/gaetano/logs/startstarpy.log',path);
-
 		this._runtime.setPythonPath(path)
 	}
 
@@ -209,11 +206,8 @@ export class DebugSession extends LoggingDebugSession {
 		const variables = new Array<DebugProtocol.Variable>();
 		const id = this._variableHandles.get(args.variablesReference);
 		const solitude_variable = this._runtime.variables();
-		writeFileSync('/home/gaetano/logs/variablerequest.log', JSON.stringify(solitude_variable),{flag: 'a'});
-		// variables.push(solitude_variable[0])
 		if (id !== null) {
 			solitude_variable.forEach(variable => {
-				//writeFileSync('/home/gaetano/logs/variablerequest2.log', JSON.stringify(variable),{flag: 'a'});
 				variables.push(variable)
 			});
 		}

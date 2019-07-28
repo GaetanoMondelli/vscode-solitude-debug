@@ -1,7 +1,7 @@
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync } from 'fs';
 import { EventEmitter } from 'events';
 import { PythonShell } from 'python-shell';
-import * as vscode from 'vscode';
+
 
 
 export interface SolitudeBreakpoint {
@@ -26,8 +26,11 @@ export class Runtime extends EventEmitter {
 	private _variables: any[];
 	private _stack : any[];
 
+	private _taskQueue: any[];
+
 	constructor() {
 		super();
+		this._taskQueue = [];
 	}
 
 	public getPythonOptions(txHash: string) {
@@ -55,64 +58,29 @@ export class Runtime extends EventEmitter {
 
 	public start(program: string, stopOnEntry: boolean) {
 		let options = this.getPythonOptions(program)
-		writeFileSync('/home/gaetano/logs/options.log', JSON.stringify(options));
-		// this._shell =  new PythonShell("solitude.cli.main", options)
 		this._shell = new PythonShell("solitude", options)
 
-
 		this._shell.on('message', command => {
-			writeFileSync('/home/gaetano/logs/message.log', JSON.stringify(command));
-			if (command['response']['type'] == "info_locals") {
-				this._shell.send({ command: "backtrace", args: "" })
-				this._variables = [];
-				for (let variable of command['response']['variables']) {
-					this._variables.push({
-						name: variable['name'],
-						type: "string",
-						value:variable['value_string'],
-						variablesReference: 0
-					});
-				}
-				writeFileSync('/home/gaetano/logs/thisvar.log', JSON.stringify(this._variables), { flag: 'a' });
-			}
-			else if (command['response']['type'] == "backtrace") {
-				this._stack = [];
-				for (let frame of command['response']['frames']) {
-					this._stack.push({
-						index: frame.index,
-						name: `${frame.description}(${1})`,
-						file: this._sourceFile,
-						line: this._currentLine
-					});
-				}
-			}
-			else if (command['status'] == 'ok' && command['response']['code']['path'] != null) {
-				this._shell.send({ command: "info_locals", args: "" })
-				let path = command['response']['code']['path']
-				this.loadSource(path);
-				this._currentLine = command['response']['code']['line_index'];
-				this.sendEvent('stopOnStep');
-				return true;
-			}
-			else {
-				this._shell.send({ command: "step", args: "" })
-			}
+			this.processMessage(command);
 		});
 
-		this._shell.send({ command: "step", args: "" })
+		this.step()
 	}
 
 	public continue(reverse = false) {
-		this._notInterrupted = true;
-		this._shell.send({ command: "step", args: "" })
+		this.step();
 	}
 
 	public step(reverse = false, event = 'stopOnStep') {
-		this._shell.send({ "command": "step", "args": "" })
+		this._taskQueue.push({ command: "step", args: "" })
+		this._taskQueue.push({ command: "info_locals", args: "" })
+		this._taskQueue.push({ command: "backtrace", args: "" })
+		this._taskQueue.push({ command: "step", args: "" })
+
+		this.processTaskQueue();
 	}
 
 	public variables(): any {
-		//this._shell.send({ command: "info_locals", args: "" })
 		return this._variables;
 	}
 
@@ -181,6 +149,49 @@ export class Runtime extends EventEmitter {
 				}
 			});
 		}
+	}
+
+	private processTaskQueue(){
+		if(this._taskQueue.length > 0) {
+			let command = this._taskQueue.shift();
+			this._shell.send(command);
+		}
+	}
+
+	private processMessage(msg) {
+		if (msg['response']['type'] == "info_locals") {
+			this._variables = [];
+			for (let variable of msg['response']['variables']) {
+				this._variables.push({
+					name: variable['name'],
+					type: "string",
+					value:variable['value_string'],
+					variablesReference: 0
+				});
+			}
+		}
+		else if (msg['response']['type'] == "backtrace") {
+			this._stack = [];
+			for (let frame of msg['response']['frames']) {
+				this._stack.push({
+					index: frame.index,
+					name: `${frame.description}(${1})`,
+					file: this._sourceFile,
+					line: this._currentLine
+				});
+			}
+		}
+		else if (msg['status'] == 'ok') {
+			if (msg['response']['code']['path'] == null){
+			}
+			else{
+				let path = msg['response']['code']['path']
+				this.loadSource(path);
+				this._currentLine = msg['response']['code']['line_index'];
+				this.sendEvent('stopOnStep');
+			}
+		}
+		this.processTaskQueue()
 	}
 
 	private sendEvent(event: string, ...args: any[]) {
