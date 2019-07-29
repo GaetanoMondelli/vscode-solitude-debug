@@ -75,7 +75,7 @@ export class Runtime extends EventEmitter {
 		this._taskQueue.push({ command: "step", args: "" })
 		this._taskQueue.push({ command: "info_locals", args: "" })
 		this._taskQueue.push({ command: "backtrace", args: "" })
-		this._taskQueue.push({ command: "step", args: "" })
+
 
 		this.processTaskQueue();
 	}
@@ -188,9 +188,9 @@ export class Runtime extends EventEmitter {
 				let path = msg['response']['code']['path']
 				this.loadSource(path);
 				this._currentLine = msg['response']['code']['line_index'];
-				this.sendEvent('stopOnStep');
 			}
 		}
+		this.sendEvent('stopOnStep');
 		this.processTaskQueue()
 	}
 
