@@ -21,7 +21,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('extension.solitude-debug.getTransaction', config => {
 		return vscode.window.showInputBox({
 			placeHolder: "Please enter the transaction hash",
-			value: "0x7cb16b703e1fb6f49999f7fdd4ed1b3b06c40651e0fd318e095b1000edbe2e6b"
+			value: "0x48852881a1eaec20fd6d915e72a28f6b1cefafe5ad7515914e2653439a597599"
 		});
 	}));
 

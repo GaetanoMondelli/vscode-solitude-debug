@@ -49,9 +49,9 @@ export class DebugSession extends LoggingDebugSession {
 		this._runtime = new Runtime();
 
 		// setup event handlers
-		// this._runtime.on('stopOnEntry', () => {
-		// 	this.sendEvent(new StoppedEvent('entry', DebugSession.THREAD_ID));
-		// });
+		this._runtime.on('stopOnEntry', () => {
+			this.sendEvent(new StoppedEvent('entry', DebugSession.THREAD_ID));
+		});
 		this._runtime.on('infoLocals', (info) => {
 			writeFileSync('/home/gaetano/logs/infodebug.log', JSON.stringify(info),{flag: 'a'});
 		})

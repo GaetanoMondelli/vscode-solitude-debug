@@ -1,7 +1,7 @@
 import { readFileSync } from 'fs';
 import { EventEmitter } from 'events';
 import { PythonShell } from 'python-shell';
-
+import * as vscode from 'vscode';
 
 
 export interface SolitudeBreakpoint {
@@ -27,6 +27,17 @@ export class Runtime extends EventEmitter {
 	private _stack : any[];
 
 	private _taskQueue: any[];
+
+
+	private evaluatedExpressionDecoration = vscode.window.createTextEditorDecorationType({
+		borderWidth: '1px',
+		borderStyle: 'solid',
+		backgroundColor: 'blue',
+		//overviewRulerLane: vscode.OverviewRulerLane.Right,
+	});
+	private _range: vscode.DecorationOptions = { range: new vscode.Range(0,0,0,0) };
+	private _expression: vscode.DecorationOptions[] = [];
+
 
 	constructor() {
 		super();
@@ -64,6 +75,7 @@ export class Runtime extends EventEmitter {
 			this.processMessage(command);
 		});
 
+		this.step()
 		this.step()
 	}
 
@@ -188,6 +200,25 @@ export class Runtime extends EventEmitter {
 				let path = msg['response']['code']['path']
 				this.loadSource(path);
 				this._currentLine = msg['response']['code']['line_index'];
+				let editor = vscode.window.activeTextEditor;
+
+				this._expression = []
+				if (editor)
+				editor. setDecorations(this.evaluatedExpressionDecoration, this._expression)
+
+				let start = msg['response']['code']['line_pos']
+				let end = this._sourceLines[this._currentLine].length-1//start + parseInt(chunk[0].length);
+
+				if (editor) {
+					this.sendEvent('output', start, this.sourceFile, this._currentLine, 2);
+					this.sendEvent('output', end, this.sourceFile, this._currentLine, 2);
+					if(end > start) {
+					this._range = { range: new vscode.Range(this._currentLine, start, this._currentLine, start+4) };
+					this._expression.push(this._range)
+					this.sendEvent('output',this._sourceLines[this._currentLine], this.sourceFile, this._currentLine, 2);
+					editor.setDecorations(this.evaluatedExpressionDecoration, this._expression)
+					}
+				}
 			}
 		}
 		this.sendEvent('stopOnStep');
