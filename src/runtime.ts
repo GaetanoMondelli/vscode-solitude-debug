@@ -141,20 +141,14 @@ export class Runtime extends EventEmitter {
 		}
 	}
 
-	private verifyBreakpoints(path: string): void {
+	private verifyBreakpoints(path): void {
 		let bps = this._breakPoints.get(path);
 		if (bps) {
 			this.loadSource(path);
 			bps.forEach(bp => {
 				if (!bp.verified && bp.line < this._sourceLines.length) {
 					const srcLine = this._sourceLines[bp.line].trim();
-					if (srcLine.length === 0 || srcLine.indexOf('+') === 0) {
-						bp.line++;
-					}
-					if (srcLine.indexOf('-') === 0) {
-						bp.line--;
-					}
-					if (srcLine.indexOf('lazy') < 0) {
+					if (!(srcLine.startsWith("/") || srcLine.startsWith('*'))){
 						bp.verified = true;
 						this.sendEvent('breakpointValidated', bp);
 					}
@@ -171,6 +165,7 @@ export class Runtime extends EventEmitter {
 	}
 
 	private processMessage(msg) {
+		this.sendEvent('output','hello'+JSON.stringify(this._breakPoints), this.sourceFile, this._currentLine, 2);
 		if (msg['response']['type'] == "info_locals") {
 			this._variables = [];
 			for (let variable of msg['response']['variables']) {
@@ -210,12 +205,9 @@ export class Runtime extends EventEmitter {
 				let end =  start + msg['response']['code']['line_lenght']
 
 				if (editor) {
-					this.sendEvent('output', start, this.sourceFile, this._currentLine, 2);
-					this.sendEvent('output', end, this.sourceFile, this._currentLine, 2);
 					if(end > start) {
 					this._range = { range: new vscode.Range(this._currentLine, start, this._currentLine, end) };
 					this._expression.push(this._range)
-					this.sendEvent('output',JSON.stringify(msg['response']), this.sourceFile, this._currentLine, 2);
 					editor.setDecorations(this.evaluatedExpressionDecoration, this._expression)
 					}
 				}

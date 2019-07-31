@@ -103,7 +103,7 @@ export class DebugSession extends LoggingDebugSession {
 		response.body.supportsEvaluateForHovers = true;
 
 		// make VS Code to show a 'step back' button
-		response.body.supportsStepBack = true;
+		//response.body.supportsStepBack = true;
 
 		this.sendResponse(response);
 
