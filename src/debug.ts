@@ -52,8 +52,9 @@ export class DebugSession extends LoggingDebugSession {
 		this._runtime.on('stopOnEntry', () => {
 			this.sendEvent(new StoppedEvent('entry', DebugSession.THREAD_ID));
 		});
+
 		this._runtime.on('infoLocals', (info) => {
-			writeFileSync('/home/gaetano/logs/infodebug.log', JSON.stringify(info),{flag: 'a'});
+			//writeFileSync('/home/gaetano/logs/infodebug.log', JSON.stringify(info), { flag: 'a' });
 		})
 		this._runtime.on('stopOnStep', () => {
 			this.sendEvent(new StoppedEvent('step', DebugSession.THREAD_ID));
@@ -79,11 +80,11 @@ export class DebugSession extends LoggingDebugSession {
 		});
 	}
 
-	public setSolitudeConfigurationPath(path: string){
+	public setSolitudeConfigurationPath(path: string) {
 		this._runtime.setSolitudeConfigurationPath(path)
 	}
 
-	public setPyhtonPath(path: string){
+	public setPyhtonPath(path: string) {
 		this._runtime.setPythonPath(path)
 	}
 
@@ -102,6 +103,7 @@ export class DebugSession extends LoggingDebugSession {
 		// make VS Code to use 'evaluate' when hovering over source
 		response.body.supportsEvaluateForHovers = true;
 
+		response.body.supportsFunctionBreakpoints = true;
 		// make VS Code to show a 'step back' button
 		//response.body.supportsStepBack = true;
 
@@ -138,6 +140,11 @@ export class DebugSession extends LoggingDebugSession {
 
 		this.sendResponse(response);
 	}
+	protected setFunctionBreakPointsRequest(response: DebugProtocol.SetFunctionBreakpointsResponse, args: DebugProtocol.SetFunctionBreakpointsArguments): void {
+		args.breakpoints.forEach(fbp =>{
+			this._runtime.setFunctionBreakPoint(fbp.name)
+		})
+	}
 
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
 
@@ -150,8 +157,8 @@ export class DebugSession extends LoggingDebugSession {
 		// set and verify breakpoint locations
 		const actualBreakpoints = clientLines.map(l => {
 			let { verified, line, id } = this._runtime.setBreakPoint(path, this.convertClientLineToDebugger(l));
-			const bp = <DebugProtocol.Breakpoint> new Breakpoint(verified, this.convertDebuggerLineToClient(line));
-			bp.id= id;
+			const bp = <DebugProtocol.Breakpoint>new Breakpoint(verified, this.convertDebuggerLineToClient(line));
+			bp.id = id;
 			return bp;
 		});
 
@@ -223,10 +230,10 @@ export class DebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
-	protected reverseContinueRequest(response: DebugProtocol.ReverseContinueResponse, args: DebugProtocol.ReverseContinueArguments) : void {
+	protected reverseContinueRequest(response: DebugProtocol.ReverseContinueResponse, args: DebugProtocol.ReverseContinueArguments): void {
 		this._runtime.continue(true);
 		this.sendResponse(response);
- 	}
+	}
 
 	protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
 		this._runtime.step();
@@ -247,8 +254,8 @@ export class DebugSession extends LoggingDebugSession {
 			const matches = /new +([0-9]+)/.exec(args.expression);
 			if (matches && matches.length === 2) {
 				const mbp = this._runtime.setBreakPoint(this._runtime.sourceFile, this.convertClientLineToDebugger(parseInt(matches[1])));
-				const bp = <DebugProtocol.Breakpoint> new Breakpoint(mbp.verified, this.convertDebuggerLineToClient(mbp.line), undefined, this.createSource(this._runtime.sourceFile));
-				bp.id= mbp.id;
+				const bp = <DebugProtocol.Breakpoint>new Breakpoint(mbp.verified, this.convertDebuggerLineToClient(mbp.line), undefined, this.createSource(this._runtime.sourceFile));
+				bp.id = mbp.id;
 				this.sendEvent(new BreakpointEvent('new', bp));
 				reply = `breakpoint created`;
 			} else {
@@ -256,8 +263,8 @@ export class DebugSession extends LoggingDebugSession {
 				if (matches && matches.length === 2) {
 					const mbp = this._runtime.clearBreakPoint(this._runtime.sourceFile, this.convertClientLineToDebugger(parseInt(matches[1])));
 					if (mbp) {
-						const bp = <DebugProtocol.Breakpoint> new Breakpoint(false);
-						bp.id= mbp.id;
+						const bp = <DebugProtocol.Breakpoint>new Breakpoint(false);
+						bp.id = mbp.id;
 						this.sendEvent(new BreakpointEvent('removed', bp));
 						reply = `breakpoint deleted`;
 					}

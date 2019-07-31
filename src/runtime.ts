@@ -80,7 +80,11 @@ export class Runtime extends EventEmitter {
 	}
 
 	public continue(reverse = false) {
-		this.step();
+		this._taskQueue.push({ command: "continue", args: "" })
+		this._taskQueue.push({ command: "info_locals", args: "" })
+		this._taskQueue.push({ command: "backtrace", args: "" })
+
+		this.processTaskQueue();
 	}
 
 	public step(reverse = false, event = 'stopOnStep') {
@@ -115,6 +119,12 @@ export class Runtime extends EventEmitter {
 		this.verifyBreakpoints(path);
 
 		return bp;
+	}
+
+	public setFunctionBreakPoint(name: string){
+		// is there a way to clear this?
+		this._taskQueue.push({ "command": "break", "args": [name] })
+		this.processTaskQueue()
 	}
 
 	public clearBreakPoint(path: string, line: number): SolitudeBreakpoint | undefined {
