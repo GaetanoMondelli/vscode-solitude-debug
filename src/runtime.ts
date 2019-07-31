@@ -207,15 +207,15 @@ export class Runtime extends EventEmitter {
 				editor. setDecorations(this.evaluatedExpressionDecoration, this._expression)
 
 				let start = msg['response']['code']['line_pos']
-				let end = this._sourceLines[this._currentLine].length-1//start + parseInt(chunk[0].length);
+				let end =  start + msg['response']['code']['line_lenght']
 
 				if (editor) {
 					this.sendEvent('output', start, this.sourceFile, this._currentLine, 2);
 					this.sendEvent('output', end, this.sourceFile, this._currentLine, 2);
 					if(end > start) {
-					this._range = { range: new vscode.Range(this._currentLine, start, this._currentLine, start+4) };
+					this._range = { range: new vscode.Range(this._currentLine, start, this._currentLine, end) };
 					this._expression.push(this._range)
-					this.sendEvent('output',this._sourceLines[this._currentLine], this.sourceFile, this._currentLine, 2);
+					this.sendEvent('output',JSON.stringify(msg['response']), this.sourceFile, this._currentLine, 2);
 					editor.setDecorations(this.evaluatedExpressionDecoration, this._expression)
 					}
 				}
