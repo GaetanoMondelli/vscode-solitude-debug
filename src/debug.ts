@@ -11,7 +11,6 @@ import {
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { basename } from 'path';
 import { Runtime, SolitudeBreakpoint } from './runtime';
-import { writeFileSync } from 'fs';
 const { Subject } = require('await-notify');
 
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {

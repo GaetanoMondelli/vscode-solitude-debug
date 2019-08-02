@@ -62,16 +62,6 @@
       "type": "object",
       "title": "Solitude Debug Extension",
       "properties": {
-        "solitude-exstension-debugger.useWorkspaceFolder": {
-          "type": "boolean",
-          "default": true,
-          "description": "Use workspace folder for solitude.yml file"
-        },
-        "solitude-exstension-debugger.solitudeConfigurationPath": {
-          "type": "string",
-          "default": "${workspaceFolder}",
-          "description": "Path of the solitude.yaml file"
-        },
         "solitude-exstension-debugger.solitudePath": {
           "type": "string",
           "default": "/usr/local/bin/solitude",
@@ -104,12 +94,17 @@
               "program": {
                 "type": "string",
                 "description": "Txid of the transaction you want to debug",
-                "default": "${workspaceFolder}/${command:AskForTransaction}"
+                "default": "${command:AskForTransaction}"
               },
               "stopOnEntry": {
                 "type": "boolean",
                 "description": "Automatically stop after launch.",
                 "default": true
+              },
+              "solitudeConfigPath": {
+                "type": "string",
+                "description": "Solitude yaml configuration file folder",
+                "default": "${workspaceFolder}"
               },
               "trace": {
                 "type": "boolean",
@@ -125,6 +120,7 @@
             "request": "launch",
             "name": "Transaction hash id",
             "program": "${command:AskForTransaction}",
+            "solitudeConfigPath": "${workspaceFolder}",
             "stopOnEntry": true
           }
         ],
@@ -137,6 +133,7 @@
               "request": "launch",
               "name": "Transaction hash id",
               "program": "${command:AskForTransaction}",
+              "solitudeConfigPath":  "${workspaceFolder}",
               "stopOnEntry": true
             }
           }

@@ -8,7 +8,7 @@ import * as vscode from 'vscode';
 import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
 import { DebugSession } from './debug';
 import * as Net from 'net';
-import {existsSync} from 'fs';
+import { existsSync } from 'fs';
 
 /*
  * Set the following compile time flag to true if the
@@ -46,7 +46,7 @@ class ConfigurationProvider implements vscode.DebugConfigurationProvider {
 		// if launch.json is missing or empty
 		if (!config.type && !config.request && !config.name) {
 			const editor = vscode.window.activeTextEditor;
-			if (editor && editor.document.languageId === 'markdown' ) {
+			if (editor && editor.document.languageId === 'solidity') {
 				config.type = 'solitude';
 				config.name = 'Launch';
 				config.request = 'launch';
@@ -69,8 +69,8 @@ class ConfigurationProvider implements vscode.DebugConfigurationProvider {
 					const session = new DebugSession();
 					session.setRunAsServer(true);
 					let solitudeConfigPath = '';
-					if(folder)
-						solitudeConfigPath =  this.setSolitudePreference(session, folder.uri.path) + '/solitude.yaml'
+					if (folder)
+						solitudeConfigPath = this.setSolitudePreference(config, session, folder.uri.path) + '/solitude.yaml'
 					if (solitudeConfigPath == '' || !existsSync(solitudeConfigPath)) {
 						return vscode.window.showErrorMessage(`Configuration cannot be found: ${solitudeConfigPath}. Please check solitude settings.`)
 					}
@@ -86,22 +86,28 @@ class ConfigurationProvider implements vscode.DebugConfigurationProvider {
 		return config;
 	}
 
-	setSolitudePreference(session: DebugSession, workspaceFolder: string) : string {
+	setSolitudePreference(debugConfig: DebugConfiguration, session: DebugSession, workspaceFolder: string): string {
 
 		let config = vscode.workspace.getConfiguration('solitude-exstension-debugger');
-
 		session.setPyhtonPath(config['pythonPath'])
+		let path = debugConfig.solitudeConfigPath;
 
-		if (config['useWorkspaceFolder'] == true){ //&& false){
-			session.setSolitudeConfigurationPath(workspaceFolder)
-			return workspaceFolder
+		if (!path || path == '' || path == "${workspaceFolder}") {
+			path = workspaceFolder
 		}
-		else{
-			let path = config['solitudeConfigurationPath']
-			session.setSolitudeConfigurationPath(path)
-			return path
-		}
+
+		session.setSolitudeConfigurationPath(path)
+
+		// if (config['useWorkspaceFolder'] == true){ //&& false){
+		// 	session.setSolitudeConfigurationPath(workspaceFolder)
+		// 	return workspaceFolder
+		// }
+		// else{
+		// 	let path = config['solitudeConfigurationPath']
+		// 	session.setSolitudeConfigurationPath(path)
+		return path;
 	}
+
 
 	dispose() {
 		if (this._server) {
