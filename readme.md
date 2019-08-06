@@ -9,3 +9,11 @@ Debug a committed transaction using solitude by passing the Transaction Id.
 - npm compile
 
 ![Solitude Debug](images/debug.png)
+
+# TO-DO
+
+- Register breakpoints when the session starts
+- Line Breakpoints
+- Clear Breakpoints
+- Adapt Solitude session to Truffle project
+- Exception handling

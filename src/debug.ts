@@ -52,8 +52,11 @@ export class DebugSession extends LoggingDebugSession {
 			this.sendEvent(new StoppedEvent('entry', DebugSession.THREAD_ID));
 		});
 
-		this._runtime.on('infoLocals', (info) => {
-			//writeFileSync('/home/gaetano/logs/infodebug.log', JSON.stringify(info), { flag: 'a' });
+		this._runtime.on('initialized', () => {
+			// since this debug adapter can accept configuration requests like 'setBreakpoint' at any time,
+			// we request them early by sending an 'initializeRequest' to the frontend.
+			// The frontend will end the configuration sequence by calling 'configurationDone' request.
+			this.sendEvent(new InitializedEvent());
 		})
 		this._runtime.on('stopOnStep', () => {
 			this.sendEvent(new StoppedEvent('step', DebugSession.THREAD_ID));
@@ -108,10 +111,6 @@ export class DebugSession extends LoggingDebugSession {
 
 		this.sendResponse(response);
 
-		// since this debug adapter can accept configuration requests like 'setBreakpoint' at any time,
-		// we request them early by sending an 'initializeRequest' to the frontend.
-		// The frontend will end the configuration sequence by calling 'configurationDone' request.
-		this.sendEvent(new InitializedEvent());
 	}
 
 	/**
@@ -139,6 +138,7 @@ export class DebugSession extends LoggingDebugSession {
 
 		this.sendResponse(response);
 	}
+
 	protected setFunctionBreakPointsRequest(response: DebugProtocol.SetFunctionBreakpointsResponse, args: DebugProtocol.SetFunctionBreakpointsArguments): void {
 		args.breakpoints.forEach(fbp =>{
 			this._runtime.setFunctionBreakPoint(fbp.name)

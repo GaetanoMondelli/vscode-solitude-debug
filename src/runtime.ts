@@ -5,6 +5,7 @@ import * as vscode from 'vscode';
 
 
 export interface SolitudeBreakpoint {
+	fullpath: string;
 	id: number;
 	line: number;
 	verified: boolean;
@@ -24,7 +25,7 @@ export class Runtime extends EventEmitter {
 	private _pythonPath: string;
 	private _shell;
 	private _variables: any[];
-	private _stack : any[];
+	private _stack: any[];
 
 	private _taskQueue: any[];
 
@@ -35,7 +36,7 @@ export class Runtime extends EventEmitter {
 		backgroundColor: 'blue',
 		//overviewRulerLane: vscode.OverviewRulerLane.Right,
 	});
-	private _range: vscode.DecorationOptions = { range: new vscode.Range(0,0,0,0) };
+	private _range: vscode.DecorationOptions = { range: new vscode.Range(0, 0, 0, 0) };
 	private _expression: vscode.DecorationOptions[] = [];
 
 
@@ -75,6 +76,7 @@ export class Runtime extends EventEmitter {
 			this.processMessage(command);
 		});
 
+		this.sendEvent('initialized');
 		this.step()
 		this.step()
 	}
@@ -108,22 +110,24 @@ export class Runtime extends EventEmitter {
 	}
 
 	public setBreakPoint(path: string, line: number): SolitudeBreakpoint {
-		const bp = <SolitudeBreakpoint>{ verified: false, line, id: this._breakpointId++ };
+		const bp = <SolitudeBreakpoint>{ fullpath: path, verified: false, line, id: this._breakpointId++ };
 		let bps = this._breakPoints.get(path);
+		let pathArray = path.split('/');
 		if (!bps) {
 			bps = new Array<SolitudeBreakpoint>();
-			this._breakPoints.set(path, bps);
+			this._breakPoints.set(pathArray[pathArray.length - 1], bps);
 		}
 		bps.push(bp);
-
-		this.verifyBreakpoints(path);
+		this._taskQueue.unshift({ "command": "break", "args": [pathArray[pathArray.length - 1]+':'+line] })
+		this.processTaskQueue()
 
 		return bp;
 	}
 
-	public setFunctionBreakPoint(name: string){
+	public setFunctionBreakPoint(name: string) {
 		// is there a way to clear this?
-		this._taskQueue.push({ "command": "break", "args": [name] })
+		//const bp = <SolitudeBreakpoint>{ fullpath: path, verified: false, line, id: this._breakpointId++ };
+		this._taskQueue.unshift({ "command": "break", "args": [name] })
 		this.processTaskQueue()
 	}
 
@@ -157,32 +161,29 @@ export class Runtime extends EventEmitter {
 			this.loadSource(path);
 			bps.forEach(bp => {
 				if (!bp.verified && bp.line < this._sourceLines.length) {
-					const srcLine = this._sourceLines[bp.line].trim();
-					if (!(srcLine.startsWith("/") || srcLine.startsWith('*'))){
-						bp.verified = true;
-						this.sendEvent('breakpointValidated', bp);
-					}
+					bp.verified = true;
+					this.sendEvent('breakpointValidated', bp);
 				}
 			});
 		}
 	}
 
-	private processTaskQueue(){
-		if(this._taskQueue.length > 0) {
+	private processTaskQueue() {
+		if (this._taskQueue.length > 0) {
 			let command = this._taskQueue.shift();
 			this._shell.send(command);
 		}
 	}
 
 	private processMessage(msg) {
-		this.sendEvent('output','hello'+JSON.stringify(this._breakPoints), this.sourceFile, this._currentLine, 2);
+		this.sendEvent('output', 'hello' + JSON.stringify(this._breakPoints), this.sourceFile, this._currentLine, 2);
 		if (msg['response']['type'] == "info_locals") {
 			this._variables = [];
 			for (let variable of msg['response']['variables']) {
 				this._variables.push({
 					name: variable['name'],
 					type: "string",
-					value:variable['value_string'],
+					value: variable['value_string'],
 					variablesReference: 0
 				});
 			}
@@ -198,10 +199,15 @@ export class Runtime extends EventEmitter {
 				});
 			}
 		}
-		else if (msg['status'] == 'ok') {
-			if (msg['response']['code']['path'] == null){
+		else if (msg['response']['type'] == "break") {
+			if (msg['status'] == 'ok') {
+				this.verifyBreakpoints(msg['response']['breakpoint_name']);
 			}
-			else{
+		}
+		else if (msg['status'] == 'ok') {
+			if (msg['response']['code']['path'] == null) {
+			}
+			else {
 				let path = msg['response']['code']['path']
 				this.loadSource(path);
 				this._currentLine = msg['response']['code']['line_index'];
@@ -209,16 +215,16 @@ export class Runtime extends EventEmitter {
 
 				this._expression = []
 				if (editor)
-				editor. setDecorations(this.evaluatedExpressionDecoration, this._expression)
+					editor.setDecorations(this.evaluatedExpressionDecoration, this._expression)
 
 				let start = msg['response']['code']['line_pos']
-				let end =  start + msg['response']['code']['line_lenght']
+				let end = start + msg['response']['code']['line_lenght']
 
 				if (editor) {
-					if(end > start) {
-					this._range = { range: new vscode.Range(this._currentLine, start, this._currentLine, end) };
-					this._expression.push(this._range)
-					editor.setDecorations(this.evaluatedExpressionDecoration, this._expression)
+					if (end > start) {
+						this._range = { range: new vscode.Range(this._currentLine, start, this._currentLine, end) };
+						this._expression.push(this._range)
+						editor.setDecorations(this.evaluatedExpressionDecoration, this._expression)
 					}
 				}
 			}

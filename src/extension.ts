@@ -97,14 +97,6 @@ class ConfigurationProvider implements vscode.DebugConfigurationProvider {
 		}
 
 		session.setSolitudeConfigurationPath(path)
-
-		// if (config['useWorkspaceFolder'] == true){ //&& false){
-		// 	session.setSolitudeConfigurationPath(workspaceFolder)
-		// 	return workspaceFolder
-		// }
-		// else{
-		// 	let path = config['solitudeConfigurationPath']
-		// 	session.setSolitudeConfigurationPath(path)
 		return path;
 	}
 
