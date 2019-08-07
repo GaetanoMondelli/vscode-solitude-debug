@@ -15,5 +15,6 @@ Debug a committed transaction using solitude by passing the Transaction Id.
 - Register breakpoints when the session starts
 - Line Breakpoints
 - Clear Breakpoints
-- Adapt Solitude session to Truffle project
 - Exception handling
+- Hierarchical call stack view
+- Adapt Solitude session to Truffle project

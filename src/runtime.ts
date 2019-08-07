@@ -131,15 +131,17 @@ export class Runtime extends EventEmitter {
 		this.processTaskQueue()
 	}
 
-	public clearBreakPoint(path: string, line: number): SolitudeBreakpoint | undefined {
+	public clearBreakPoint(path: string): SolitudeBreakpoint | undefined {
 		let bps = this._breakPoints.get(path);
+		let pathArray = path.split('/');
 		if (bps) {
-			const index = bps.findIndex(bp => bp.line === line);
-			if (index >= 0) {
-				const bp = bps[index];
-				bps.splice(index, 1);
-				return bp;
-			}
+			const bp = bps[0];
+			let line = bp.line;
+			this._taskQueue.unshift({ "command": "delete", "args": [pathArray[pathArray.length - 1]+':'+line] })
+			bps.splice(0, 1);
+			this.processTaskQueue();
+
+			return bp;
 		}
 		return undefined;
 	}
@@ -176,7 +178,7 @@ export class Runtime extends EventEmitter {
 	}
 
 	private processMessage(msg) {
-		this.sendEvent('output', 'hello' + JSON.stringify(this._breakPoints), this.sourceFile, this._currentLine, 2);
+		//this.sendEvent('output', 'hello' + JSON.stringify(this._breakPoints), this.sourceFile, this._currentLine, 2);
 		if (msg['response']['type'] == "info_locals") {
 			this._variables = [];
 			for (let variable of msg['response']['variables']) {
@@ -203,6 +205,12 @@ export class Runtime extends EventEmitter {
 			if (msg['status'] == 'ok') {
 				this.verifyBreakpoints(msg['response']['breakpoint_name']);
 			}
+		}
+		else if (msg['response']['type'] == "revert") {
+			this.sendEvent('output', 'hello', this.sourceFile, this._currentLine, 2);
+			this.sendEvent('output', 'Exception: '+ msg['response']['code']['text'], msg['response']['code']['absolute_path'],msg['response']['code']['line_index'],msg['response']['code']['line_pos']);
+			this.sendEvent('stopOnException');
+			return true;
 		}
 		else if (msg['status'] == 'ok') {
 			if (msg['response']['code']['path'] == null) {

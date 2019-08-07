@@ -153,6 +153,12 @@ export class DebugSession extends LoggingDebugSession {
 		// clear all breakpoints for this file
 		this._runtime.clearBreakpoints(path);
 
+		if(clientLines.length == 0){
+			let pathArray = path.split('/');
+			this._runtime.clearBreakPoint(pathArray[pathArray.length-1])
+			return
+		}
+
 		// set and verify breakpoint locations
 		const actualBreakpoints = clientLines.map(l => {
 			let { verified, line, id } = this._runtime.setBreakPoint(path, this.convertClientLineToDebugger(l));
@@ -260,7 +266,7 @@ export class DebugSession extends LoggingDebugSession {
 			} else {
 				const matches = /del +([0-9]+)/.exec(args.expression);
 				if (matches && matches.length === 2) {
-					const mbp = this._runtime.clearBreakPoint(this._runtime.sourceFile, this.convertClientLineToDebugger(parseInt(matches[1])));
+					const mbp = this._runtime.clearBreakPoint(this._runtime.sourceFile);
 					if (mbp) {
 						const bp = <DebugProtocol.Breakpoint>new Breakpoint(false);
 						bp.id = mbp.id;
