@@ -3,7 +3,6 @@ import { EventEmitter } from 'events';
 import { PythonShell } from 'python-shell';
 import * as vscode from 'vscode';
 
-
 export interface SolitudeBreakpoint {
 	fullpath: string;
 	id: number;
@@ -19,6 +18,8 @@ export class Runtime extends EventEmitter {
 
 	private _sourceLines: string[];
 	private _currentLine = 0;
+	private _start = 0;
+	private _end = 0;
 	private _breakPoints = new Map<string, SolitudeBreakpoint[]>();
 	private _breakpointId = 1;
 	private _solitudeConfigurationPath: string;
@@ -26,6 +27,7 @@ export class Runtime extends EventEmitter {
 	private _shell;
 	private _variables: any[];
 	private _stack: any[];
+	private _exceptionFound = false;
 
 	private _taskQueue: any[];
 
@@ -34,6 +36,12 @@ export class Runtime extends EventEmitter {
 		borderWidth: '1px',
 		borderStyle: 'solid',
 		backgroundColor: 'blue',
+		//overviewRulerLane: vscode.OverviewRulerLane.Right,
+	});
+	private evaluatedExceptionDecoration = vscode.window.createTextEditorDecorationType({
+		borderWidth: '1px',
+		borderStyle: 'solid',
+		backgroundColor: 'red',
 		//overviewRulerLane: vscode.OverviewRulerLane.Right,
 	});
 	private _range: vscode.DecorationOptions = { range: new vscode.Range(0, 0, 0, 0) };
@@ -55,7 +63,6 @@ export class Runtime extends EventEmitter {
 			mode: "json" as Modetype,
 			pythonPath: this._pythonPath,
 			pythonOptions: ["-m"],
-			//scriptPath: this._solitudePath,
 			args: params
 		};
 	}
@@ -77,8 +84,13 @@ export class Runtime extends EventEmitter {
 		});
 
 		this.sendEvent('initialized');
-		this.step()
-		this.step()
+		this.step();
+		this.step();
+	}
+
+	public getInfo(){
+		this._taskQueue.push({ command: "info_locals", args: "" })
+		this._taskQueue.push({ command: "backtrace", args: "" })
 	}
 
 	public continue(reverse = false) {
@@ -178,7 +190,6 @@ export class Runtime extends EventEmitter {
 	}
 
 	private processMessage(msg) {
-		//this.sendEvent('output', 'hello' + JSON.stringify(this._breakPoints), this.sourceFile, this._currentLine, 2);
 		if (msg['response']['type'] == "info_locals") {
 			this._variables = [];
 			for (let variable of msg['response']['variables']) {
@@ -207,43 +218,71 @@ export class Runtime extends EventEmitter {
 			}
 		}
 		else if (msg['response']['type'] == "revert") {
-			this.sendEvent('output', 'hello', this.sourceFile, this._currentLine, 2);
+			this._sourceFile = msg['response']['code']['path']
+			this._currentLine = msg['response']['code']['line_index'];
+			this._start = msg['response']['code']['line_pos']
+			this._end = this._start + msg['response']['code']['line_lenght']
 			this.sendEvent('output', 'Exception: '+ msg['response']['code']['text'], msg['response']['code']['absolute_path'],msg['response']['code']['line_index'],msg['response']['code']['line_pos']);
-			this.sendEvent('stopOnException');
+			this._exceptionFound = true;
+			this._taskQueue = [];
+			this.getInfo();
+		}
+		else if (msg['response']['type'] == "end"){
+			this.clearEditor();
+			this.sendEvent('end');
 			return true;
 		}
 		else if (msg['status'] == 'ok') {
 			if (msg['response']['code']['path'] == null) {
 			}
 			else {
-				let path = msg['response']['code']['path']
-				this.loadSource(path);
+				this._sourceFile = msg['response']['code']['path']
 				this._currentLine = msg['response']['code']['line_index'];
-				let editor = vscode.window.activeTextEditor;
-
-				this._expression = []
-				if (editor)
-					editor.setDecorations(this.evaluatedExpressionDecoration, this._expression)
-
-				let start = msg['response']['code']['line_pos']
-				let end = start + msg['response']['code']['line_lenght']
-
-				if (editor) {
-					if (end > start) {
-						this._range = { range: new vscode.Range(this._currentLine, start, this._currentLine, end) };
-						this._expression.push(this._range)
-						editor.setDecorations(this.evaluatedExpressionDecoration, this._expression)
-					}
-				}
+				this._start = msg['response']['code']['line_pos']
+				this._end = this._start + msg['response']['code']['line_lenght']
+				this.renderCodeInfo(this.evaluatedExpressionDecoration);
 			}
+		}
+		if(this._exceptionFound && this._taskQueue.length == 0){
+			this.renderCodeInfo(this.evaluatedExceptionDecoration);
+			this.sendEvent('stopOnException');
+			return true;
 		}
 		this.sendEvent('stopOnStep');
 		this.processTaskQueue()
+		return true;
 	}
 
 	private sendEvent(event: string, ...args: any[]) {
 		setImmediate(_ => {
 			this.emit(event, ...args);
 		});
+	}
+
+	private clearEditor(){
+		let editor = vscode.window.activeTextEditor;
+		this._expression = []
+		if (editor){
+			editor.setDecorations(this.evaluatedExceptionDecoration, this._expression)
+			editor.setDecorations(this.evaluatedExpressionDecoration, this._expression)
+		}
+	}
+
+	private highlightWord(decorationStyle: vscode.TextEditorDecorationType){
+		let editor = vscode.window.activeTextEditor;
+		if (editor) {
+			if (this._end > this._start) {
+				this._range = { range: new vscode.Range(this._currentLine, this._start, this._currentLine, this._end) };
+				this._expression.push(this._range)
+				editor.setDecorations(decorationStyle, this._expression)
+			}
+		}
+	}
+
+	private renderCodeInfo(decorationStyle: vscode.TextEditorDecorationType ){
+		this._currentLine = this._currentLine;
+		this.loadSource(this.sourceFile);
+		this.clearEditor();
+		this.highlightWord(decorationStyle);
 	}
 }
