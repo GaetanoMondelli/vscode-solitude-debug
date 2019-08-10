@@ -187,16 +187,12 @@ export class DebugSession extends LoggingDebugSession {
 
 	protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {
 
-		const startFrame = typeof args.startFrame === 'number' ? args.startFrame : 0;
-		const maxLevels = typeof args.levels === 'number' ? args.levels : 1000;
-		const endFrame = startFrame + maxLevels;
-
-		const stk = this._runtime.stack(startFrame, endFrame);
-
+		const stk = this._runtime.getStack();
 		response.body = {
 			stackFrames: stk.frames.map(f => new StackFrame(f.index, f.name, this.createSource(f.file), this.convertDebuggerLineToClient(f.line))),
 			totalFrames: stk.count
 		};
+		response.body.stackFrames[response.body.stackFrames.length-1].presentationHint='subtle';
 		this.sendResponse(response);
 	}
 
@@ -217,7 +213,7 @@ export class DebugSession extends LoggingDebugSession {
 
 		const variables = new Array<DebugProtocol.Variable>();
 		const id = this._variableHandles.get(args.variablesReference);
-		const solitude_variable = this._runtime.variables();
+		const solitude_variable = this._runtime.getVariables();
 		if (id !== null) {
 			solitude_variable.forEach(variable => {
 				variables.push(variable)

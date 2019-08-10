@@ -51,6 +51,7 @@ export class Runtime extends EventEmitter {
 	constructor() {
 		super();
 		this._taskQueue = [];
+		this._stack = [];
 	}
 
 	public getPythonOptions(txHash: string) {
@@ -110,11 +111,11 @@ export class Runtime extends EventEmitter {
 		this.processTaskQueue();
 	}
 
-	public variables(): any {
+	public getVariables(): any {
 		return this._variables;
 	}
 
-	public stack(startFrame: number, endFrame: number): any {
+	public getStack(): any {
 		return {
 			frames: this._stack,
 			count: this._stack.length
@@ -202,15 +203,34 @@ export class Runtime extends EventEmitter {
 			}
 		}
 		else if (msg['response']['type'] == "backtrace") {
-			this._stack = [];
-			for (let frame of msg['response']['frames']) {
-				this._stack.push({
-					index: frame.index,
+			//this._stack = [];
+			//this.sendEvent('output', JSON.stringify(msg['response']), '/mnt/c/file',1,1);
+			if (!this._sourceFile || !this._currentLine){
+				return true;
+			}
+
+			if(msg['response']['frames'].length > this._stack.length){
+				let frame = msg['response']['frames'].find(element=> element.index == 0 );
+				this._stack.unshift({
+					index: `${frame.index}`,
 					name: `${frame.description}(${1})`,
 					file: this._sourceFile,
 					line: this._currentLine
 				});
 			}
+			else if (this._stack.length > 1){
+				this._stack[0].line = this._currentLine;
+				this._stack[0].file = this._sourceFile;
+			}
+
+			// for (let frame of msg['response']['frames']) {
+			// 	this._stack.push({
+			// 		//index: `${frame.index}`,
+			// 		name: `${frame.description}(${1})`,
+			// 		file: this._sourceFile,
+			// 		line: this._currentLine
+			// 	});
+			// }
 		}
 		else if (msg['response']['type'] == "break") {
 			if (msg['status'] == 'ok') {

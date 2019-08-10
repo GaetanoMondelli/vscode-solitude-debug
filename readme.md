@@ -16,7 +16,10 @@ Debug a committed transaction using solitude by passing the Transaction Id.
 - Line Breakpoints
 - Clear Breakpoints
 - Exception handling
-- Hierarchical call stack view
+- Hierarchical call stack view (X)
 - Handle end session messages
 - Adapt Solitude session to Truffle project
 - Red highlight when exception found on continue (active editor may on the same file)
+- Add command for the REPL interface
+- Clean decorations onStop event
+- Change variables when change scope
