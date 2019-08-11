@@ -22,5 +22,10 @@ Debug a committed transaction using solitude by passing the Transaction Id.
 - Red highlight when exception found on continue (active editor may on the same file)
 - Add command for the REPL interface
 - Clean decorations onStop event
-- Change variables when change scope
 - Handle stop session
+- Change variables when change scope
+
+# BUGS
+
+- First frame does not points to the contract definition
+- First step requires multiple step commands

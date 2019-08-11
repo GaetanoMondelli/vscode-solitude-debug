@@ -117,10 +117,7 @@ export class Runtime extends EventEmitter {
 	}
 
 	public getStack(): any {
-		return {
-			frames: this._stack,
-			count: this._stack.length
-		};
+		return this._stack;
 	}
 
 	public setBreakPoint(path: string, line: number): SolitudeBreakpoint {
@@ -231,10 +228,9 @@ export class Runtime extends EventEmitter {
 			}
 			else if (msg['response']['frames'].length < this._stack.length) {
 				this._stack.shift();
-				this._stack[0].line = this._currentLine;
-				this._stack[0].file = this._sourceFile;
 			}
-
+			this._stack[0].line = this._currentLine;
+			this._stack[0].file = this._sourceFile;
 
 		}
 		else if (msg['response']['type'] == "break") {

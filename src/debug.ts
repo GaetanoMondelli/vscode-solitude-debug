@@ -109,6 +109,7 @@ export class DebugSession extends LoggingDebugSession {
 		// make VS Code to show a 'step back' button
 		//response.body.supportsStepBack = true;
 
+		//response.body.supportsDelayedStackTraceLoading = true;
 		this.sendResponse(response);
 
 	}
@@ -186,13 +187,15 @@ export class DebugSession extends LoggingDebugSession {
 	}
 
 	protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {
-
-		const stk = this._runtime.getStack();
+		let stk = this._runtime.getStack();
+		if(args.startFrame != undefined && args.levels != undefined){
+			stk = stk.slice(args.startFrame,args.startFrame+args.levels);
+		}
 		response.body = {
-			stackFrames: stk.frames.map(f => new StackFrame(f.index, f.name, this.createSource(f.file), this.convertDebuggerLineToClient(f.line))),
+			stackFrames: stk.map(f => new StackFrame(f.index, f.name, this.createSource(f.file), this.convertDebuggerLineToClient(f.line))),
 			totalFrames: stk.count
 		};
-		response.body.stackFrames[response.body.stackFrames.length-1].presentationHint='subtle';
+		//response.body.stackFrames[response.body.stackFrames.length-1].presentationHint='subtle';
 		this.sendResponse(response);
 	}
 
