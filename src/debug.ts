@@ -246,6 +246,10 @@ export class DebugSession extends LoggingDebugSession {
 		this.sendResponse(response);
 	}
 
+	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments): void {
+		this._runtime.clearEditor();
+	}
+
 	protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
 
 		let reply: string | undefined = undefined;

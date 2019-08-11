@@ -23,3 +23,4 @@ Debug a committed transaction using solitude by passing the Transaction Id.
 - Add command for the REPL interface
 - Clean decorations onStop event
 - Change variables when change scope
+- Handle stop session

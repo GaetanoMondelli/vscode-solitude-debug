@@ -28,6 +28,7 @@ export class Runtime extends EventEmitter {
 	private _variables: any[];
 	private _stack: any[];
 	private _exceptionFound = false;
+	private _breakpointFound = false;
 
 	private _taskQueue: any[];
 
@@ -89,7 +90,7 @@ export class Runtime extends EventEmitter {
 		this.step();
 	}
 
-	public getInfo(){
+	public getInfo() {
 		this._taskQueue.push({ command: "info_locals", args: "" })
 		this._taskQueue.push({ command: "backtrace", args: "" })
 	}
@@ -131,7 +132,7 @@ export class Runtime extends EventEmitter {
 			this._breakPoints.set(pathArray[pathArray.length - 1], bps);
 		}
 		bps.push(bp);
-		this._taskQueue.unshift({ "command": "break", "args": [pathArray[pathArray.length - 1]+':'+line] })
+		this._taskQueue.unshift({ "command": "break", "args": [pathArray[pathArray.length - 1] + ':' + line] })
 		this.processTaskQueue()
 
 		return bp;
@@ -150,7 +151,7 @@ export class Runtime extends EventEmitter {
 		if (bps) {
 			const bp = bps[0];
 			let line = bp.line;
-			this._taskQueue.unshift({ "command": "delete", "args": [pathArray[pathArray.length - 1]+':'+line] })
+			this._taskQueue.unshift({ "command": "delete", "args": [pathArray[pathArray.length - 1] + ':' + line] })
 			bps.splice(0, 1);
 			this.processTaskQueue();
 
@@ -161,6 +162,15 @@ export class Runtime extends EventEmitter {
 
 	public clearBreakpoints(path: string): void {
 		this._breakPoints.delete(path);
+	}
+
+	public clearEditor() {
+		let editor = vscode.window.activeTextEditor;
+		this._expression = []
+		if (editor) {
+			editor.setDecorations(this.evaluatedExceptionDecoration, this._expression)
+			editor.setDecorations(this.evaluatedExpressionDecoration, this._expression)
+		}
 	}
 
 	private loadSource(file: string) {
@@ -203,34 +213,29 @@ export class Runtime extends EventEmitter {
 			}
 		}
 		else if (msg['response']['type'] == "backtrace") {
-			//this._stack = [];
-			//this.sendEvent('output', JSON.stringify(msg['response']), '/mnt/c/file',1,1);
-			if (!this._sourceFile || !this._currentLine){
+			if (!this._sourceFile || !this._currentLine) {
 				return true;
 			}
 
-			if(msg['response']['frames'].length > this._stack.length){
-				let frame = msg['response']['frames'].find(element=> element.index == 0 );
+			if (msg['response']['frames'].length > this._stack.length) {
+				for (let index = 0; index < this._stack.length; index++) {
+					this._stack[index].index = `${index+1}`;
+				}
+				let frame = msg['response']['frames'].find(element => element.index == 0);
 				this._stack.unshift({
-					index: `${frame.index}`,
+					index: '0',
 					name: `${frame.description}(${1})`,
 					file: this._sourceFile,
 					line: this._currentLine
 				});
 			}
-			else if (this._stack.length > 1){
+			else if (msg['response']['frames'].length < this._stack.length) {
+				this._stack.shift();
 				this._stack[0].line = this._currentLine;
 				this._stack[0].file = this._sourceFile;
 			}
 
-			// for (let frame of msg['response']['frames']) {
-			// 	this._stack.push({
-			// 		//index: `${frame.index}`,
-			// 		name: `${frame.description}(${1})`,
-			// 		file: this._sourceFile,
-			// 		line: this._currentLine
-			// 	});
-			// }
+
 		}
 		else if (msg['response']['type'] == "break") {
 			if (msg['status'] == 'ok') {
@@ -242,31 +247,41 @@ export class Runtime extends EventEmitter {
 			this._currentLine = msg['response']['code']['line_index'];
 			this._start = msg['response']['code']['line_pos']
 			this._end = this._start + msg['response']['code']['line_lenght']
-			this.sendEvent('output', 'Exception: '+ msg['response']['code']['text'], msg['response']['code']['absolute_path'],msg['response']['code']['line_index'],msg['response']['code']['line_pos']);
+			this.sendEvent('output', 'Exception: ' + msg['response']['code']['text'], msg['response']['code']['absolute_path'], msg['response']['code']['line_index'], msg['response']['code']['line_pos']);
 			this._exceptionFound = true;
 			this._taskQueue = [];
 			this.getInfo();
 		}
-		else if (msg['response']['type'] == "end"){
+		else if (msg['response']['type'] == "end") {
 			this.clearEditor();
 			this.sendEvent('end');
 			return true;
 		}
-		else if (msg['status'] == 'ok') {
-			if (msg['response']['code']['path'] == null) {
+		else if (msg['response']['type'] == 'step' || msg['response']['type'] == 'breakpoint') {
+			if (msg['status'] == 'ok') {
+				if (msg['response']['code']['path'] != null) {
+					this._sourceFile = msg['response']['code']['path']
+					this._currentLine = msg['response']['code']['line_index'];
+					this._start = msg['response']['code']['line_pos']
+					this._end = this._start + msg['response']['code']['line_lenght']
+					this.renderCodeInfo(this.evaluatedExpressionDecoration);
+				}
 			}
-			else {
-				this._sourceFile = msg['response']['code']['path']
-				this._currentLine = msg['response']['code']['line_index'];
-				this._start = msg['response']['code']['line_pos']
-				this._end = this._start + msg['response']['code']['line_lenght']
-				this.renderCodeInfo(this.evaluatedExpressionDecoration);
+			if (msg['response']['type'] == 'breakpoint') {
+				this._breakpointFound = true;
 			}
 		}
-		if(this._exceptionFound && this._taskQueue.length == 0){
-			this.renderCodeInfo(this.evaluatedExceptionDecoration);
-			this.sendEvent('stopOnException');
-			return true;
+		if (this._taskQueue.length == 0) {
+			if (this._exceptionFound) {
+				this.renderCodeInfo(this.evaluatedExceptionDecoration);
+				this.sendEvent('stopOnException');
+				return true;
+			}
+			if (this._breakpointFound) {
+				this.sendEvent('stopOnBreakpoint');
+				this._breakpointFound = false;
+				return true;
+			}
 		}
 		this.sendEvent('stopOnStep');
 		this.processTaskQueue()
@@ -279,16 +294,7 @@ export class Runtime extends EventEmitter {
 		});
 	}
 
-	private clearEditor(){
-		let editor = vscode.window.activeTextEditor;
-		this._expression = []
-		if (editor){
-			editor.setDecorations(this.evaluatedExceptionDecoration, this._expression)
-			editor.setDecorations(this.evaluatedExpressionDecoration, this._expression)
-		}
-	}
-
-	private highlightWord(decorationStyle: vscode.TextEditorDecorationType){
+	private highlightWord(decorationStyle: vscode.TextEditorDecorationType) {
 		let editor = vscode.window.activeTextEditor;
 		if (editor) {
 			if (this._end > this._start) {
@@ -299,7 +305,7 @@ export class Runtime extends EventEmitter {
 		}
 	}
 
-	private renderCodeInfo(decorationStyle: vscode.TextEditorDecorationType ){
+	private renderCodeInfo(decorationStyle: vscode.TextEditorDecorationType) {
 		this._currentLine = this._currentLine;
 		this.loadSource(this.sourceFile);
 		this.clearEditor();
