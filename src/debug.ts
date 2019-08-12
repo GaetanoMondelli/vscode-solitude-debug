@@ -216,7 +216,8 @@ export class DebugSession extends LoggingDebugSession {
 
 		const variables = new Array<DebugProtocol.Variable>();
 		const id = this._variableHandles.get(args.variablesReference);
-		const solitude_variable = this._runtime.getVariables();
+		const solitude_variable = this._runtime.getVariables(id);
+
 		if (id !== null) {
 			solitude_variable.forEach(variable => {
 				variables.push(variable)

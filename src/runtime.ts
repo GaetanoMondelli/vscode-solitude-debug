@@ -26,11 +26,12 @@ export class Runtime extends EventEmitter {
 	private _pythonPath: string;
 	private _shell;
 	private _variables: any[];
+	private _variablesFrame: any[];
 	private _stack: any[];
 	private _exceptionFound = false;
 	private _breakpointFound = false;
 	private _contractSource: string;
-	private _contractLine: string;
+	private _contractLine: number;
 
 	private _taskQueue: any[];
 
@@ -53,6 +54,7 @@ export class Runtime extends EventEmitter {
 		super();
 		this._taskQueue = [];
 		this._stack = [];
+		this._variablesFrame = [];
 	}
 
 	public getPythonOptions(txHash: string) {
@@ -112,8 +114,12 @@ export class Runtime extends EventEmitter {
 		this.processTaskQueue();
 	}
 
-	public getVariables(): any {
-		return this._variables;
+	public getVariables(variableId='local_0'): any {
+		const frameNumber = +variableId.split('_')[1];
+		if(frameNumber==0){
+			return this._variables;
+		}
+		return this._variablesFrame[frameNumber];
 	}
 
 	public getStack(): any {
@@ -136,8 +142,6 @@ export class Runtime extends EventEmitter {
 	}
 
 	public setFunctionBreakPoint(name: string) {
-		// is there a way to clear this?
-		//const bp = <SolitudeBreakpoint>{ fullpath: path, verified: false, line, id: this._breakpointId++ };
 		this._taskQueue.unshift({ "command": "break", "args": [name] })
 		this.processTaskQueue()
 	}
@@ -217,7 +221,7 @@ export class Runtime extends EventEmitter {
 
 			if(this._contractSource == undefined || this._contractLine == undefined){
 				this._contractSource = this.sourceFile;
-				this._contractLine = this._contractLine;
+				this._contractLine = this._currentLine;
 			}
 
 			if (msg['response']['frames'].length > this._stack.length) {
@@ -235,13 +239,14 @@ export class Runtime extends EventEmitter {
 					file: this._sourceFile,
 					line: this._currentLine
 				});
+				this._variablesFrame.unshift(this._variables)
 			}
 			else if (msg['response']['frames'].length < this._stack.length) {
 				this._stack.shift();
+				this._variablesFrame.shift();
 			}
 			this._stack[0].line = this._currentLine;
 			this._stack[0].file = this._sourceFile;
-
 		}
 		else if (msg['response']['type'] == "break") {
 			if (msg['status'] == 'ok') {

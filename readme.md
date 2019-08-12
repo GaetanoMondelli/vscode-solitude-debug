@@ -24,8 +24,4 @@ Debug a committed transaction using solitude by passing the Transaction Id.
 - Clean decorations onStop event
 - Handle stop session
 - Change variables when change scope
-
-# BUGS
-
-- First frame does not points to the contract definition
-- First step requires multiple step commands
+- Evaluate the correct call stack on continue event
