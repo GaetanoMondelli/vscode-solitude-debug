@@ -29,6 +29,8 @@ export class Runtime extends EventEmitter {
 	private _stack: any[];
 	private _exceptionFound = false;
 	private _breakpointFound = false;
+	private _contractSource: string;
+	private _contractLine: string;
 
 	private _taskQueue: any[];
 
@@ -37,13 +39,11 @@ export class Runtime extends EventEmitter {
 		borderWidth: '1px',
 		borderStyle: 'solid',
 		backgroundColor: 'blue',
-		//overviewRulerLane: vscode.OverviewRulerLane.Right,
 	});
 	private evaluatedExceptionDecoration = vscode.window.createTextEditorDecorationType({
 		borderWidth: '1px',
 		borderStyle: 'solid',
 		backgroundColor: 'red',
-		//overviewRulerLane: vscode.OverviewRulerLane.Right,
 	});
 	private _range: vscode.DecorationOptions = { range: new vscode.Range(0, 0, 0, 0) };
 	private _expression: vscode.DecorationOptions[] = [];
@@ -86,7 +86,7 @@ export class Runtime extends EventEmitter {
 		});
 
 		this.sendEvent('initialized');
-		this.step();
+		this._taskQueue.push({ command: "step", args: "" })
 		this.step();
 	}
 
@@ -198,6 +198,7 @@ export class Runtime extends EventEmitter {
 	}
 
 	private processMessage(msg) {
+		// this.sendEvent('output', JSON.stringify(msg), 'file',0);
 		if (msg['response']['type'] == "info_locals") {
 			this._variables = [];
 			for (let variable of msg['response']['variables']) {
@@ -214,9 +215,18 @@ export class Runtime extends EventEmitter {
 				return true;
 			}
 
+			if(this._contractSource == undefined || this._contractLine == undefined){
+				this._contractSource = this.sourceFile;
+				this._contractLine = this._contractLine;
+			}
+
 			if (msg['response']['frames'].length > this._stack.length) {
 				for (let index = 0; index < this._stack.length; index++) {
 					this._stack[index].index = `${index+1}`;
+				}
+				if(this._stack.length > 1){
+					this._stack[this._stack.length-1].file = this._contractSource;
+					this._stack[this._stack.length-1].line = this._contractLine;
 				}
 				let frame = msg['response']['frames'].find(element => element.index == 0);
 				this._stack.unshift({
