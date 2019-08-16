@@ -141,7 +141,7 @@ export class DebugSession extends LoggingDebugSession {
 	}
 
 	protected setFunctionBreakPointsRequest(response: DebugProtocol.SetFunctionBreakpointsResponse, args: DebugProtocol.SetFunctionBreakpointsArguments): void {
-		args.breakpoints.forEach(fbp =>{
+		args.breakpoints.forEach(fbp => {
 			this._runtime.setFunctionBreakPoint(fbp.name)
 		})
 	}
@@ -154,9 +154,9 @@ export class DebugSession extends LoggingDebugSession {
 		// clear all breakpoints for this file
 		this._runtime.clearBreakpoints(path);
 
-		if(clientLines.length == 0){
+		if (clientLines.length == 0) {
 			let pathArray = path.split('/');
-			this._runtime.clearBreakPoint(pathArray[pathArray.length-1])
+			this._runtime.clearBreakPoint(pathArray[pathArray.length - 1])
 			return
 		}
 
@@ -188,14 +188,19 @@ export class DebugSession extends LoggingDebugSession {
 
 	protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {
 		let stk = this._runtime.getStack();
-		if(args.startFrame != undefined && args.levels != undefined){
-			stk = stk.slice(args.startFrame,args.startFrame+args.levels);
+		if (args.startFrame != undefined && args.levels != undefined) {
+			stk = stk.slice(args.startFrame, args.startFrame + args.levels);
 		}
 		response.body = {
 			stackFrames: stk.map(f => new StackFrame(f.index, f.name, this.createSource(f.file), this.convertDebuggerLineToClient(f.line))),
 			totalFrames: stk.count
 		};
-		//response.body.stackFrames[response.body.stackFrames.length-1].presentationHint='subtle';
+
+		for (let index = 0; index < stk.length; index++) {
+			if (stk[index].invalidVariables) {
+				response.body.stackFrames[index].presentationHint = 'subtle';
+			}
+		}
 		this.sendResponse(response);
 	}
 

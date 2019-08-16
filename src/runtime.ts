@@ -114,9 +114,9 @@ export class Runtime extends EventEmitter {
 		this.processTaskQueue();
 	}
 
-	public getVariables(variableId='local_0'): any {
+	public getVariables(variableId = 'local_0'): any {
 		const frameNumber = +variableId.split('_')[1];
-		if(frameNumber==0){
+		if (frameNumber == 0) {
 			return this._variables;
 		}
 		return this._variablesFrame[frameNumber];
@@ -219,25 +219,43 @@ export class Runtime extends EventEmitter {
 				return true;
 			}
 
-			if(this._contractSource == undefined || this._contractLine == undefined){
+			if (this._contractSource == undefined || this._contractLine == undefined) {
 				this._contractSource = this.sourceFile;
 				this._contractLine = this._currentLine;
 			}
 
 			if (msg['response']['frames'].length > this._stack.length) {
 				for (let index = 0; index < this._stack.length; index++) {
-					this._stack[index].index = `${index+1}`;
+					this._stack[index].index = `${index + 1}`;
 				}
-				if(this._stack.length > 1){
-					this._stack[this._stack.length-1].file = this._contractSource;
-					this._stack[this._stack.length-1].line = this._contractLine;
+				if (this._stack.length > 1) {
+					this._stack[this._stack.length - 1].file = this._contractSource;
+					this._stack[this._stack.length - 1].line = this._contractLine;
+				}
+				if (this._breakpointFound || this._exceptionFound) {
+					this._stack = this._stack.slice(0,2);
+					this._stack[this._stack.length - 1].index = msg['response']['frames'].length-1
+					for (let index = msg['response']['frames'].length - 2; index > 0; index--) {
+						// potentially all the callstack elements except for the first two elements can be in a different state
+						let frame = msg['response']['frames'].find(element => element.index == index);
+						this._stack.unshift({
+							index: `${frame.index}`,
+							name: `${frame.description}(${1})`,
+							file: this._sourceFile,
+							line: this._currentLine,
+							invalidVariables: true
+						});
+						this._variablesFrame.unshift(this._variables.slice())
+					}
 				}
 				let frame = msg['response']['frames'].find(element => element.index == 0);
 				this._stack.unshift({
 					index: '0',
 					name: `${frame.description}(${1})`,
 					file: this._sourceFile,
-					line: this._currentLine
+					line: this._currentLine,
+					invalidVariables: false
+
 				});
 				this._variablesFrame.unshift(this._variables)
 			}
@@ -286,6 +304,7 @@ export class Runtime extends EventEmitter {
 			if (this._exceptionFound) {
 				this.renderCodeInfo(this.evaluatedExceptionDecoration);
 				this.sendEvent('stopOnException');
+				this.processTaskQueue()
 				return true;
 			}
 			if (this._breakpointFound) {

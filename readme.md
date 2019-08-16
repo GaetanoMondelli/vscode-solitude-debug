@@ -24,4 +24,6 @@ Debug a committed transaction using solitude by passing the Transaction Id.
 - Clean decorations onStop event
 - Handle stop session
 - Change variables when change scope
-- Evaluate the correct call stack on continue event
+- Evaluate the correct call stack on continue event (subtle for the intermediate states we don't know file,line and variables)
+- Support restart
+- Callstack format
