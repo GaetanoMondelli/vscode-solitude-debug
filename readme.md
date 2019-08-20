@@ -27,3 +27,5 @@ Debug a committed transaction using solitude by passing the Transaction Id.
 - Evaluate the correct call stack on continue event (subtle for the intermediate states we don't know file,line and variables)
 - Support restart
 - Callstack format
+- MultiOptions selection with transactions when activate
+- List of valid transactions

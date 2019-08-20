@@ -79,8 +79,8 @@ export class Runtime extends EventEmitter {
 		this._pythonPath = path
 	}
 
-	public start(program: string, stopOnEntry: boolean) {
-		let options = this.getPythonOptions(program)
+	public start(txhash: string, stopOnEntry: boolean) {
+		let options = this.getPythonOptions(txhash)
 		this._shell = new PythonShell("solitude", options)
 
 		this._shell.on('message', command => {

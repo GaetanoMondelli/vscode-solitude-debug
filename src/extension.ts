@@ -4,6 +4,8 @@
 
 'use strict';
 
+import {safeLoad} from 'js-yaml';
+import {readFileSync} from 'fs';
 import * as vscode from 'vscode';
 import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
 import { DebugSession } from './debug';
@@ -16,12 +18,23 @@ import { existsSync } from 'fs';
  * Please note: the test suite does no longer work in this mode.
  */
 const EMBED_DEBUG_ADAPTER = true;
+let workspaceFolder: string | undefined;
+let solitudeConfigFilePath: string;
 
 export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('extension.solitude-debug.getTransaction', config => {
-		return vscode.window.showInputBox({
+		let endpoint = 'http://127.0.0.1:8545'
+		let solitudeConfigPath = solitudeConfigFilePath;
+		if (workspaceFolder && solitudeConfigPath == '${workspaceFolder}')
+			solitudeConfigPath = workspaceFolder
+		let options = safeLoad(readFileSync(solitudeConfigPath + '/solitude.yaml', 'utf8'))
+		if ('Client.Endpoint' in options){
+			endpoint = options['Client.Endpoint'];
+		}
+		// TODO: Add here the API REQUEST to get the latest transaction
+
+		return vscode.window.showQuickPick([endpoint, '0x48852881a1eaec20fd6d915e72a28f6b1cefafe5ad7515914e2653439a597599', '0xd63db6285e44a79d0b6532b9e18490b8a8c704672f45189ac79bc33f6feb5d19'], {
 			placeHolder: "Please enter the transaction hash",
-			value: "0x48852881a1eaec20fd6d915e72a28f6b1cefafe5ad7515914e2653439a597599"
 		});
 	}));
 
@@ -36,7 +49,6 @@ export function deactivate() {
 class ConfigurationProvider implements vscode.DebugConfigurationProvider {
 
 	private _server?: Net.Server;
-
 	/**
 	 * Massage a debug configuration just before a debug session is being launched,
 	 * e.g. add all missing attributes to the debug configuration.
@@ -56,9 +68,16 @@ class ConfigurationProvider implements vscode.DebugConfigurationProvider {
 		}
 
 		if (!config.program) {
+			//debugConfig.program = '';
 			return vscode.window.showInformationMessage("Cannot find a program to debug").then(_ => {
 				return undefined;	// abort launch
 			});
+		}
+
+		solitudeConfigFilePath = config.solitudeConfigPath;
+
+		if (folder) {
+			workspaceFolder = folder.uri.path;
 		}
 
 		if (EMBED_DEBUG_ADAPTER) {
@@ -69,8 +88,9 @@ class ConfigurationProvider implements vscode.DebugConfigurationProvider {
 					const session = new DebugSession();
 					session.setRunAsServer(true);
 					let solitudeConfigPath = '';
-					if (folder)
+					if (folder) {
 						solitudeConfigPath = this.setSolitudePreference(config, session, folder.uri.path) + '/solitude.yaml'
+					}
 					if (solitudeConfigPath == '' || !existsSync(solitudeConfigPath)) {
 						return vscode.window.showErrorMessage(`Configuration cannot be found: ${solitudeConfigPath}. Please check solitude settings.`)
 					}
