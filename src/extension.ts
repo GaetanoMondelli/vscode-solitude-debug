@@ -4,13 +4,15 @@
 
 'use strict';
 
-import {safeLoad} from 'js-yaml';
-import {readFileSync} from 'fs';
+import { safeLoad } from 'js-yaml';
+import { readFileSync } from 'fs';
 import * as vscode from 'vscode';
 import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
 import { DebugSession } from './debug';
 import * as Net from 'net';
 import { existsSync } from 'fs';
+
+import { post } from 'request';
 
 /*
  * Set the following compile time flag to true if the
@@ -20,20 +22,77 @@ import { existsSync } from 'fs';
 const EMBED_DEBUG_ADAPTER = true;
 let workspaceFolder: string | undefined;
 let solitudeConfigFilePath: string;
+let endpoint: string;
+let transactions: any[];
 
-export function activate(context: vscode.ExtensionContext) {
-	context.subscriptions.push(vscode.commands.registerCommand('extension.solitude-debug.getTransaction', config => {
-		let endpoint = 'http://127.0.0.1:8545'
+function getBlockRange(endpoint: string): Promise<Array<Number>> {
+	return new Promise((resolve, reject) => {
+		post(endpoint, { json: { jsonrpc: "2.0", method: "eth_blockNumber", params: [], "id": 1 } },
+			(error, res, body) => {
+				if (error) {
+					reject(error);
+				}
+				let result = body.result;
+				let min = 0;
+				let max = Number(result);
+				if (result > 10) {
+					min = max - 10;
+				}
+				resolve([min, max]);
+			});
+	})
+}
+
+function getTransactionsCount(endpoint: string, blocknum: Number) {
+	return new Promise((resolve, reject) => {
+		let blockNumHex = '0x' + blocknum.toString(16);
+		post(endpoint, { json: { jsonrpc: "2.0", method: "eth_getBlockTransactionCountByNumber", params: [blockNumHex], "id": 1 } },
+			(error, res, body) => {
+				if (error) {
+					return reject(error);
+				}
+				return resolve(body.result);
+			});
+	})
+}
+
+function getTransactions(endpoint: string, block: Number, index: Number) {
+	return new Promise((resolve, reject) => {
+		let blockHex = '0x' + block.toString(16);
+		let indexHex = '0x' + index.toString(16);
+		post(endpoint, { json: { jsonrpc: "2.0", method: "eth_getTransactionByBlockNumberAndIndex", params: [blockHex, indexHex], "id": 1 } },
+			(error, res, body) => {
+				if (error) {
+					reject(error);
+				}
+				console.log(body.result)
+				resolve(body.result.hash);
+			});
+	})
+}
+
+export async function activate(context: vscode.ExtensionContext) {
+	context.subscriptions.push(vscode.commands.registerCommand('extension.solitude-debug.getTransaction', async config => {
+		endpoint = 'http://127.0.0.1:8545'
 		let solitudeConfigPath = solitudeConfigFilePath;
 		if (workspaceFolder && solitudeConfigPath == '${workspaceFolder}')
 			solitudeConfigPath = workspaceFolder
 		let options = safeLoad(readFileSync(solitudeConfigPath + '/solitude.yaml', 'utf8'))
-		if ('Client.Endpoint' in options){
+		if ('Client.Endpoint' in options) {
 			endpoint = options['Client.Endpoint'];
 		}
-		// TODO: Add here the API REQUEST to get the latest transaction
+		transactions = [];
 
-		return vscode.window.showQuickPick([endpoint, '0x48852881a1eaec20fd6d915e72a28f6b1cefafe5ad7515914e2653439a597599', '0xd63db6285e44a79d0b6532b9e18490b8a8c704672f45189ac79bc33f6feb5d19'], {
+		let range = await getBlockRange(endpoint);
+		for (let blockIndex = Number(range[0]); blockIndex <= Number(range[1]); blockIndex++) {
+			let count = await getTransactionsCount(endpoint, blockIndex);
+			for (let txindex = 0; txindex < Number(count); txindex++) {
+				let txhash = await getTransactions(endpoint,blockIndex,txindex);
+				transactions.push(txhash);
+			}
+		}
+
+		return vscode.window.showQuickPick(transactions, {
 			placeHolder: "Please enter the transaction hash",
 		});
 	}));
@@ -100,14 +159,12 @@ class ConfigurationProvider implements vscode.DebugConfigurationProvider {
 
 			// make VS Code connect to debug server instead of launching debug adapter
 			config.debugServer = this._server.address().port;
-
 		}
 
-		return config;
+		return config
 	}
 
 	setSolitudePreference(debugConfig: DebugConfiguration, session: DebugSession, workspaceFolder: string): string {
-
 		let config = vscode.workspace.getConfiguration('solitude-exstension-debugger');
 		session.setPyhtonPath(config['pythonPath'])
 		let path = debugConfig.solitudeConfigPath;

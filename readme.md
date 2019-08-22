@@ -29,3 +29,8 @@ Debug a committed transaction using solitude by passing the Transaction Id.
 - Callstack format
 - MultiOptions selection with transactions when activate
 - List of valid transactions
+- Add Description to the transactio id
+- First transaction does not work in e04 (check if a transaction works)
+- Refactor in exstension.ts (remove RPC calls logic)
+- Refactor in runtime (decouple operation queue from runtime logic)
+- Exstension.ts should handle all the possible errors
