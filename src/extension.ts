@@ -56,7 +56,7 @@ function getTransactionsCount(endpoint: string, blocknum: Number) {
 	})
 }
 
-function getTransactions(endpoint: string, block: Number, index: Number) {
+function getTransaction(endpoint: string, block: Number, index: Number) {
 	return new Promise((resolve, reject) => {
 		let blockHex = '0x' + block.toString(16);
 		let indexHex = '0x' + index.toString(16);
@@ -65,8 +65,19 @@ function getTransactions(endpoint: string, block: Number, index: Number) {
 				if (error) {
 					reject(error);
 				}
-				console.log(body.result)
 				resolve(body.result.hash);
+			});
+	})
+}
+
+function getTransactionReceipt(endpoint: string, txhash: String) {
+	return new Promise((resolve, reject) => {
+		post(endpoint, { json: { jsonrpc: "2.0", method: "eth_getTransactionReceipt", params: [txhash], "id": 1 } },
+			(error, res, body) => {
+				if (error) {
+					reject(error);
+				}
+				resolve(body.result.contractAddress);
 			});
 	})
 }
@@ -87,8 +98,11 @@ export async function activate(context: vscode.ExtensionContext) {
 		for (let blockIndex = Number(range[0]); blockIndex <= Number(range[1]); blockIndex++) {
 			let count = await getTransactionsCount(endpoint, blockIndex);
 			for (let txindex = 0; txindex < Number(count); txindex++) {
-				let txhash = await getTransactions(endpoint,blockIndex,txindex);
-				transactions.push(txhash);
+				let txhash: any = await getTransaction(endpoint,blockIndex,txindex);
+				let isContractCreation =  await getTransactionReceipt(endpoint, txhash)
+				if (isContractCreation == null){
+					transactions.push(txhash);
+				}
 			}
 		}
 
