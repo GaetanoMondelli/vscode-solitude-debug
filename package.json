@@ -12,7 +12,7 @@
     "multi-root ready"
   ],
   "engines": {
-    "vscode": "^1.18.0",
+    "vscode": "^1.32.0",
     "node": "^7.9.0"
   },
   "categories": [
@@ -39,7 +39,7 @@
   "dependencies": {
     "await-notify": "1.0.1",
     "python-shell": "^1.0.6",
-    "vscode-debugadapter": "1.27.0",
+    "vscode-debugadapter": "^1.36.0",
     "vscode-debugprotocol": "1.27.0"
   },
   "devDependencies": {
