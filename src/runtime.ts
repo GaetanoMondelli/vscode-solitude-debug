@@ -174,6 +174,11 @@ export class Runtime extends EventEmitter {
 		}
 	}
 
+	public showStackTraceText(text: string) {
+		//vscode.window.showErrorMessage('Mortacci', {modal: false});
+		//const outputChannel =
+	}
+
 	private loadSource(file: string) {
 		if (this._sourceFile !== file) {
 			this._sourceFile = file;
@@ -233,8 +238,8 @@ export class Runtime extends EventEmitter {
 					this._stack[this._stack.length - 1].line = this._contractLine;
 				}
 				if (this._breakpointFound || this._exceptionFound) {
-					this._stack = this._stack.slice(0,2);
-					this._stack[this._stack.length - 1].index = msg['response']['frames'].length-1
+					this._stack = this._stack.slice(0, 2);
+					this._stack[this._stack.length - 1].index = msg['response']['frames'].length - 1
 					for (let index = msg['response']['frames'].length - 2; index > 0; index--) {
 						// potentially all the callstack elements except for the first two elements can be in a different state
 						let frame = msg['response']['frames'].find(element => element.index == index);

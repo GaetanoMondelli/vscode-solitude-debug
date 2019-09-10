@@ -109,6 +109,7 @@ export class DebugSession extends LoggingDebugSession {
 		// make VS Code to show a 'step back' button
 		//response.body.supportsStepBack = true;
 
+		response.body.supportsExceptionInfoRequest = true;
 		//response.body.supportsDelayedStackTraceLoading = true;
 		this.sendResponse(response);
 
@@ -145,6 +146,24 @@ export class DebugSession extends LoggingDebugSession {
 			this._runtime.setFunctionBreakPoint(fbp.name)
 		})
 	}
+
+	protected exceptionInfoRequest(response: DebugProtocol.ExceptionInfoResponse, args: DebugProtocol.ExceptionInfoArguments) {
+
+        response.body = {
+            exceptionId: "ToBeCompleted-anExceptionId",
+            description: "Exception-Description",
+            breakMode: 'always',
+            details: {
+                message: "exception message",
+                typeName: "ExceptionTypeName",
+                fullTypeName: "ExceptionFullTypeName",
+                evaluateName: "evaluateName",
+                //stackTrace: "stackTrace",
+                innerException: [],
+            }
+        };
+        this.sendResponse(response);
+    }
 
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
 
@@ -192,7 +211,7 @@ export class DebugSession extends LoggingDebugSession {
 			stk = stk.slice(args.startFrame, args.startFrame + args.levels);
 		}
 		response.body = {
-			stackFrames: stk.map(f => new StackFrame(f.index, f.name, this.createSource(f.file), this.convertDebuggerLineToClient(f.line))),
+			stackFrames: stk.map(f => new StackFrame(f.index, f.name, this.createSource(f.file), this.convertDebuggerLineToClient(f.line), this.convertDebuggerColumnToClient(0))),
 			totalFrames: stk.count
 		};
 
