@@ -149,18 +149,11 @@ export class DebugSession extends LoggingDebugSession {
 
 	protected exceptionInfoRequest(response: DebugProtocol.ExceptionInfoResponse, args: DebugProtocol.ExceptionInfoArguments) {
 
+
         response.body = {
-            exceptionId: "ToBeCompleted-anExceptionId",
-            description: "Exception-Description",
-            breakMode: 'always',
-            details: {
-                message: "exception message",
-                typeName: "ExceptionTypeName",
-                fullTypeName: "ExceptionFullTypeName",
-                evaluateName: "evaluateName",
-                //stackTrace: "stackTrace",
-                innerException: [],
-            }
+            exceptionId: "revert",
+            description: this._runtime.getLastException(),
+            breakMode: 'always'
         };
         this.sendResponse(response);
     }

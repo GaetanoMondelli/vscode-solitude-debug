@@ -12,6 +12,7 @@ export interface SolitudeBreakpoint {
 export class Runtime extends EventEmitter {
 
 	private _sourceFile: string;
+	private _exceptionMessage: string;
 	public get sourceFile() {
 		return this._sourceFile;
 	}
@@ -174,9 +175,8 @@ export class Runtime extends EventEmitter {
 		}
 	}
 
-	public showStackTraceText(text: string) {
-		//vscode.window.showErrorMessage('Mortacci', {modal: false});
-		//const outputChannel =
+	public getLastException(){
+		return this._exceptionMessage;
 	}
 
 	private loadSource(file: string) {
@@ -281,7 +281,8 @@ export class Runtime extends EventEmitter {
 			this._currentLine = msg['response']['code']['line_index'];
 			this._start = msg['response']['code']['line_pos']
 			this._end = this._start + msg['response']['code']['line_lenght']
-			this.sendEvent('output', 'Exception: ' + msg['response']['code']['text'], msg['response']['code']['absolute_path'], msg['response']['code']['line_index'], msg['response']['code']['line_pos']);
+			//this.sendEvent('output', 'Exception: ' + msg['response']['code']['text'], msg['response']['code']['absolute_path'], msg['response']['code']['line_index'], msg['response']['code']['line_pos']);
+			this._exceptionMessage =  msg['response']['code']['text'];
 			this._exceptionFound = true;
 			this._taskQueue = [];
 			this.getInfo();
