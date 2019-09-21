@@ -37,4 +37,4 @@ Debug a committed transaction using solitude by passing the Transaction Id.
 - Refactor in exstension.ts (remove RPC calls logic)
 - Refactor in runtime (decouple operation queue from runtime logic)
 - Exstension.ts should handle all the possible errors
-- Exstension exception  should show the red window with the message (atm the expcetion message is shown in the console)
+- Exstension exception should show the red window with the message (atm the expcetion message is shown in the console)
