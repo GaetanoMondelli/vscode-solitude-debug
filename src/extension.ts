@@ -40,7 +40,7 @@ function getBlockRange(endpoint: string): Promise<Array<Number>> {
 				}
 				resolve([min, max]);
 			});
-	})
+	});
 }
 
 function getTransactionsCount(endpoint: string, blocknum: Number) {
@@ -53,7 +53,7 @@ function getTransactionsCount(endpoint: string, blocknum: Number) {
 				}
 				return resolve(body.result);
 			});
-	})
+	});
 }
 
 function getTransaction(endpoint: string, block: Number, index: Number) {
@@ -67,7 +67,7 @@ function getTransaction(endpoint: string, block: Number, index: Number) {
 				}
 				resolve(body.result.hash);
 			});
-	})
+	});
 }
 
 function getTransactionReceipt(endpoint: string, txhash: String) {
@@ -79,7 +79,7 @@ function getTransactionReceipt(endpoint: string, txhash: String) {
 				}
 				resolve(body.result.contractAddress);
 			});
-	})
+	});
 }
 
 export async function activate(context: vscode.ExtensionContext) {

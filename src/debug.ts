@@ -77,6 +77,7 @@ export class DebugSession extends LoggingDebugSession {
 			e.body.column = this.convertDebuggerColumnToClient(column);
 			this.sendEvent(e);
 		});
+
 		this._runtime.on('end', () => {
 			this.sendEvent(new TerminatedEvent());
 		});
@@ -128,7 +129,6 @@ export class DebugSession extends LoggingDebugSession {
 
 	protected async launchRequest(response: DebugProtocol.LaunchResponse, args: LaunchRequestArguments) {
 
-
 		// make sure to 'Stop' the buffered logging if 'trace' is not set
 		logger.setup(args.trace ? Logger.LogLevel.Verbose : Logger.LogLevel.Stop, false);
 
@@ -149,14 +149,13 @@ export class DebugSession extends LoggingDebugSession {
 
 	protected exceptionInfoRequest(response: DebugProtocol.ExceptionInfoResponse, args: DebugProtocol.ExceptionInfoArguments) {
 
-
-        response.body = {
-            exceptionId: "revert",
-            description: this._runtime.getLastException(),
-            breakMode: 'always'
-        };
-        this.sendResponse(response);
-    }
+		response.body = {
+			exceptionId: "revert",
+			description: this._runtime.getLastException(),
+			breakMode: 'always'
+		};
+		this.sendResponse(response);
+	}
 
 	protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments): void {
 

@@ -2,6 +2,7 @@ import { readFileSync } from 'fs';
 import { EventEmitter } from 'events';
 import { PythonShell } from 'python-shell';
 import { EditorHelper } from './editorHelper'
+import { TaskQueue } from './taskQueue';
 
 export interface SolitudeBreakpoint {
 	fullpath: string;
@@ -31,13 +32,12 @@ export class Runtime extends EventEmitter {
 	private _breakpointFound = false;
 	private _contractSource: string;
 	private _contractLine: number;
-	private _taskQueue: any[];
-
+	private taskQueue: TaskQueue;
 	private _editorHelper: EditorHelper;
 
 	constructor() {
 		super();
-		this._taskQueue = [];
+		this.taskQueue = new TaskQueue();
 		this._stack = [];
 		this._variablesFrame = [];
 		this._editorHelper = new EditorHelper();
@@ -74,33 +74,25 @@ export class Runtime extends EventEmitter {
 		});
 
 		this.sendEvent('initialized');
-		this._taskQueue.push({ command: "step", args: "" })
 		this.step();
 	}
 
-	public disconnect(){
+	public disconnect() {
 		this._editorHelper.clearEditor();
 	}
 
 	public getInfo() {
-		this._taskQueue.push({ command: "info_locals", args: "" })
-		this._taskQueue.push({ command: "backtrace", args: "" })
+		this.taskQueue.getInfo();
+		this.processTaskQueue();
 	}
 
 	public continue(reverse = false) {
-		this._taskQueue.push({ command: "continue", args: "" })
-		this._taskQueue.push({ command: "info_locals", args: "" })
-		this._taskQueue.push({ command: "backtrace", args: "" })
-
+		this.taskQueue.continue();
 		this.processTaskQueue();
 	}
 
 	public step(reverse = false, event = 'stopOnStep') {
-		this._taskQueue.push({ command: "step", args: "" })
-		this._taskQueue.push({ command: "info_locals", args: "" })
-		this._taskQueue.push({ command: "backtrace", args: "" })
-
-
+		this.taskQueue.step();
 		this.processTaskQueue();
 	}
 
@@ -125,14 +117,14 @@ export class Runtime extends EventEmitter {
 			this._breakPoints.set(pathArray[pathArray.length - 1], bps);
 		}
 		bps.push(bp);
-		this._taskQueue.unshift({ "command": "break", "args": [pathArray[pathArray.length - 1] + ':' + line] })
+		this.taskQueue.setBreakpoint(pathArray[pathArray.length - 1] + ':' + line)
 		this.processTaskQueue()
 
 		return bp;
 	}
 
 	public setFunctionBreakPoint(name: string) {
-		this._taskQueue.unshift({ "command": "break", "args": [name] })
+		this.taskQueue.setBreakpoint(name)
 		this.processTaskQueue()
 	}
 
@@ -142,7 +134,7 @@ export class Runtime extends EventEmitter {
 		if (bps) {
 			const bp = bps[0];
 			let line = bp.line;
-			this._taskQueue.unshift({ "command": "delete", "args": [pathArray[pathArray.length - 1] + ':' + line] })
+			this.taskQueue.clearBreakpoint(pathArray[pathArray.length - 1] + ':' + line);
 			bps.splice(0, 1);
 			this.processTaskQueue();
 
@@ -180,8 +172,9 @@ export class Runtime extends EventEmitter {
 	}
 
 	private processTaskQueue() {
-		if (this._taskQueue.length > 0) {
-			let command = this._taskQueue.shift();
+
+		if (!this.taskQueue.isEmpty()) {
+			let command = this.taskQueue.processTaskQueue();
 			this._shell.send(command);
 		}
 	}
@@ -262,7 +255,7 @@ export class Runtime extends EventEmitter {
 			this._editorHelper.updateRange(start, end);
 			this._exceptionMessage = msg['response']['code']['text'];
 			this._exceptionFound = true;
-			this._taskQueue = [];
+			this.taskQueue.empty();
 			this.getInfo();
 		}
 		else if (msg['response']['type'] == "end") {
@@ -285,10 +278,10 @@ export class Runtime extends EventEmitter {
 				this._breakpointFound = true;
 			}
 		}
-		if (this._taskQueue.length == 0) {
+		if (this.taskQueue.isEmpty()) {
 			if (this._exceptionFound) {
 				this.sendEvent('stopOnException');
-				this.processTaskQueue()
+				this.processTaskQueue();
 				return true;
 			}
 			if (this._breakpointFound) {
