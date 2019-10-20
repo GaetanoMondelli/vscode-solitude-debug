@@ -24,7 +24,6 @@ export class ContractManager {
 		return this._contractSource;
 	}
 
-
 	public getCurrentLine() : number {
 		return this._currentLine;
 	}

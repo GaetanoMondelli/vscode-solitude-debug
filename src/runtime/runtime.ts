@@ -4,35 +4,28 @@ import { PythonShell } from 'python-shell';
 import { EditorHelper } from '../editorHelper'
 import { TaskQueue } from '../taskQueue';
 import { ContractManager } from './contractManager'
+import { SolitudeDebugSession, SolitudeBreakpoint } from './solitudeDebugSession'
 
-export interface SolitudeBreakpoint {
-	fullpath: string;
-	id: number;
-	line: number;
-	verified: boolean;
-}
+
 export class Runtime extends EventEmitter {
 
-	private _exceptionMessage: string;
 	private _contractManager = new ContractManager();
-	private _breakPoints = new Map<string, SolitudeBreakpoint[]>();
+	private _solitudeDebugSession = new SolitudeDebugSession();
+	// To be removed
 	private _breakpointId = 1;
+	private _breakPoints = new Map<string, SolitudeBreakpoint[]>();
+	private _breakpointFound = false;
+
 	private _solitudeConfigurationPath: string;
 	private _pythonPath: string;
 	private _shell;
-	private _variables: any[];
-	private _variablesFrame: any[];
-	private _stack: any[];
-	private _exceptionFound = false;
-	private _breakpointFound = false;
+
 	private taskQueue: TaskQueue;
 	private _editorHelper: EditorHelper;
 
 	constructor() {
 		super();
 		this.taskQueue = new TaskQueue();
-		this._stack = [];
-		this._variablesFrame = [];
 		this._editorHelper = new EditorHelper();
 	}
 
@@ -93,16 +86,8 @@ export class Runtime extends EventEmitter {
 		this.processTaskQueue();
 	}
 
-	public getVariables(variableId = 'local_0'): any {
-		const frameNumber = +variableId.split('_')[1];
-		if (frameNumber == 0) {
-			return this._variables;
-		}
-		return this._variablesFrame[frameNumber];
-	}
-
-	public getStack(): any {
-		return this._stack;
+	public getSolitudeDebugSession(){
+		return this._solitudeDebugSession;
 	}
 
 	public setBreakPoint(path: string, line: number): SolitudeBreakpoint {
@@ -144,12 +129,6 @@ export class Runtime extends EventEmitter {
 		this._breakPoints.delete(path);
 	}
 
-	public getLastException() {
-		return this._exceptionMessage;
-	}
-
-
-
 	private verifyBreakpoints(path): void {
 		let bps = this._breakPoints.get(path);
 		if (bps) {
@@ -173,14 +152,9 @@ export class Runtime extends EventEmitter {
 
 	private processMessage(msg) {
 		if (msg['response']['type'] == "info_locals") {
-			this._variables = [];
+			this._solitudeDebugSession.clearVariables();
 			for (let variable of msg['response']['variables']) {
-				this._variables.push({
-					name: variable['name'],
-					type: "string",
-					value: variable['value_string'],
-					variablesReference: 0
-				});
+				this._solitudeDebugSession.addVariable(variable['name'], "string", variable['value_string'])
 			}
 		}
 		else if (msg['response']['type'] == "backtrace") {
@@ -193,46 +167,14 @@ export class Runtime extends EventEmitter {
 			// 	this._contractLine = this._currentLine;
 			// }
 
-			if (msg['response']['frames'].length > this._stack.length) {
-				for (let index = 0; index < this._stack.length; index++) {
-					this._stack[index].index = `${index + 1}`;
-				}
-				if (this._stack.length > 1) {
-					this._stack[this._stack.length - 1].file = this._contractManager.getSourceFile();// this._contractSource;
-					this._stack[this._stack.length - 1].line = this._contractManager.getCurrentLine(); // this._contractLine;
-				}
-				if (this._breakpointFound || this._exceptionFound) {
-					this._stack = this._stack.slice(0, 2);
-					this._stack[this._stack.length - 1].index = msg['response']['frames'].length - 1
-					for (let index = msg['response']['frames'].length - 2; index > 0; index--) {
-						let frame = msg['response']['frames'].find(element => element.index == index);
-						this._stack.unshift({
-							index: `${frame.index}`,
-							name: `${frame.description}(${1})`,
-							file: this._contractManager.getSourceFile(),
-							line: this._contractManager.getCurrentLine(),
-							invalidVariables: true
-						});
-						this._variablesFrame.unshift(this._variables.slice())
-					}
-				}
-				let frame = msg['response']['frames'].find(element => element.index == 0);
-				this._stack.unshift({
-					index: '0',
-					name: `${frame.description}(${1})`,
-					file: this._contractManager.getSourceFile(),
-					line: this._contractManager.getCurrentLine(),
-					invalidVariables: false
+			if (msg['response']['frames'].length > this._solitudeDebugSession.getStack().length) {
+				this._solitudeDebugSession.addNewStackFrameIfPossible(msg['response']['frames'], this._contractManager.getSourceFile(), this._contractManager.getCurrentLine());
+			}
+			else if (msg['response']['frames'].length < this._solitudeDebugSession.getStack().length) {
+				this._solitudeDebugSession.removeLastStackFrame();
+			}
+			this._solitudeDebugSession.updateContractSourceLineInTopStackFrame(this._contractManager.getSourceFile(), this._contractManager.getCurrentLine())
 
-				});
-				this._variablesFrame.unshift(this._variables)
-			}
-			else if (msg['response']['frames'].length < this._stack.length) {
-				this._stack.shift();
-				this._variablesFrame.shift();
-			}
-			this._stack[0].line = this._contractManager.getCurrentLine();
-			this._stack[0].file = this._contractManager.getSourceFile();
 		}
 		else if (msg['response']['type'] == "break") {
 			if (msg['status'] == 'ok') {
@@ -247,8 +189,8 @@ export class Runtime extends EventEmitter {
 			let start = msg['response']['code']['line_pos'];
 			let end = start + msg['response']['code']['line_lenght'];
 			this._editorHelper.updateRange(start, end);
-			this._exceptionMessage = msg['response']['code']['text'];
-			this._exceptionFound = true;
+			this._solitudeDebugSession.setExceptionMessage( msg['response']['code']['text']);
+			this._solitudeDebugSession.setExceptionFoundFlag();
 			this.taskQueue.empty();
 			this.getInfo();
 		}
@@ -275,7 +217,7 @@ export class Runtime extends EventEmitter {
 			}
 		}
 		if (this.taskQueue.isEmpty()) {
-			if (this._exceptionFound) {
+			if (this._solitudeDebugSession.isExceptionFound()) {
 				this.sendEvent('stopOnException');
 				this.processTaskQueue();
 				return true;

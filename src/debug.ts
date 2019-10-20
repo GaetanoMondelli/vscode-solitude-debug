@@ -10,7 +10,7 @@ import {
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { basename } from 'path';
-import { Runtime, SolitudeBreakpoint } from './runtime/runtime';
+import { Runtime } from './runtime/runtime';
 const { Subject } = require('await-notify');
 
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
@@ -20,6 +20,13 @@ interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
 	stopOnEntry?: boolean;
 	/** enable logging the Debug Adapter Protocol */
 	trace?: boolean;
+}
+
+interface SolitudeBreakpoint {
+	fullpath: string;
+	id: number;
+	line: number;
+	verified: boolean;
 }
 
 export class DebugSession extends LoggingDebugSession {
@@ -151,7 +158,7 @@ export class DebugSession extends LoggingDebugSession {
 
 		response.body = {
 			exceptionId: "revert",
-			description: this._runtime.getLastException(),
+			description: this._runtime.getSolitudeDebugSession().getLastExceptionMessage(),
 			breakMode: 'always'
 		};
 		this.sendResponse(response);
@@ -198,7 +205,7 @@ export class DebugSession extends LoggingDebugSession {
 	}
 
 	protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {
-		let stk = this._runtime.getStack();
+		let stk = this._runtime.getSolitudeDebugSession().getStack();
 		if (args.startFrame != undefined && args.levels != undefined) {
 			stk = stk.slice(args.startFrame, args.startFrame + args.levels);
 		}
@@ -232,7 +239,7 @@ export class DebugSession extends LoggingDebugSession {
 
 		const variables = new Array<DebugProtocol.Variable>();
 		const id = this._variableHandles.get(args.variablesReference);
-		const solitude_variable = this._runtime.getVariables(id);
+		const solitude_variable = this._runtime.getSolitudeDebugSession().getVariables(id);
 
 		if (id !== null) {
 			solitude_variable.forEach(variable => {
