@@ -10,7 +10,7 @@ import {
 } from 'vscode-debugadapter';
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { basename } from 'path';
-import { Runtime, SolitudeBreakpoint } from './runtime';
+import { Runtime, SolitudeBreakpoint } from './runtime/runtime';
 const { Subject } = require('await-notify');
 
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {

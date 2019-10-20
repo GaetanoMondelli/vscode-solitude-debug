@@ -38,3 +38,4 @@ Debug a committed transaction using solitude by passing the Transaction Id.
 - Refactor in runtime (decouple operation queue from runtime logic)
 - Exstension.ts should handle all the possible errors
 - Exstension exception should show the red window with the message (atm the expcetion message is shown in the console)
+- Gracefully end debugging session (when completing a session it shows an error box saying no debug adapter found)

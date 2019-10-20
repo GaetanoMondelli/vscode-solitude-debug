@@ -14,8 +14,6 @@ export class EditorHelper {
 	});
 
 	public renderCodeInfo( _currentLine: number) {
-		//this._currentLine = this._currentLine;
-		//this.loadSource(this.sourceFile);
 		this.clearEditor();
 		this.highlightWord(this.evaluatedExpressionDecoration, _currentLine);
 	}

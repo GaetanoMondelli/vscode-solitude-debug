@@ -1,8 +1,9 @@
-import { readFileSync } from 'fs';
+
 import { EventEmitter } from 'events';
 import { PythonShell } from 'python-shell';
-import { EditorHelper } from './editorHelper'
-import { TaskQueue } from './taskQueue';
+import { EditorHelper } from '../editorHelper'
+import { TaskQueue } from '../taskQueue';
+import { ContractManager } from './contractManager'
 
 export interface SolitudeBreakpoint {
 	fullpath: string;
@@ -12,14 +13,8 @@ export interface SolitudeBreakpoint {
 }
 export class Runtime extends EventEmitter {
 
-	private _sourceFile: string;
 	private _exceptionMessage: string;
-	public get sourceFile() {
-		return this._sourceFile;
-	}
-
-	private _sourceLines: string[];
-	private _currentLine = 0;
+	private _contractManager = new ContractManager();
 	private _breakPoints = new Map<string, SolitudeBreakpoint[]>();
 	private _breakpointId = 1;
 	private _solitudeConfigurationPath: string;
@@ -30,8 +25,6 @@ export class Runtime extends EventEmitter {
 	private _stack: any[];
 	private _exceptionFound = false;
 	private _breakpointFound = false;
-	private _contractSource: string;
-	private _contractLine: number;
 	private taskQueue: TaskQueue;
 	private _editorHelper: EditorHelper;
 
@@ -41,6 +34,10 @@ export class Runtime extends EventEmitter {
 		this._stack = [];
 		this._variablesFrame = [];
 		this._editorHelper = new EditorHelper();
+	}
+
+	public get sourceFile() {
+		return this._contractManager.getSourceFile();
 	}
 
 	public getPythonOptions(txHash: string) {
@@ -151,19 +148,14 @@ export class Runtime extends EventEmitter {
 		return this._exceptionMessage;
 	}
 
-	private loadSource(file: string) {
-		if (this._sourceFile !== file) {
-			this._sourceFile = file;
-			this._sourceLines = readFileSync(this._sourceFile).toString().split('\n');
-		}
-	}
+
 
 	private verifyBreakpoints(path): void {
 		let bps = this._breakPoints.get(path);
 		if (bps) {
-			this.loadSource(path);
+			this._contractManager.setOrUpdateContractSource(path)
 			bps.forEach(bp => {
-				if (!bp.verified && bp.line < this._sourceLines.length) {
+				if (!bp.verified && bp.line < this._contractManager.getContractLines.length) {
 					bp.verified = true;
 					this.sendEvent('breakpointValidated', bp);
 				}
@@ -192,22 +184,22 @@ export class Runtime extends EventEmitter {
 			}
 		}
 		else if (msg['response']['type'] == "backtrace") {
-			if (!this._sourceFile || !this._currentLine) {
-				return true;
-			}
+			// if (!this._sourceFile || !this._currentLine) {
+			// 	return true;
+			// }
 
-			if (this._contractSource == undefined || this._contractLine == undefined) {
-				this._contractSource = this.sourceFile;
-				this._contractLine = this._currentLine;
-			}
+			// if (this._contractSource == undefined || this._contractLine == undefined) {
+			// 	this._contractSource = this.sourceFile;
+			// 	this._contractLine = this._currentLine;
+			// }
 
 			if (msg['response']['frames'].length > this._stack.length) {
 				for (let index = 0; index < this._stack.length; index++) {
 					this._stack[index].index = `${index + 1}`;
 				}
 				if (this._stack.length > 1) {
-					this._stack[this._stack.length - 1].file = this._contractSource;
-					this._stack[this._stack.length - 1].line = this._contractLine;
+					this._stack[this._stack.length - 1].file = this._contractManager.getSourceFile();// this._contractSource;
+					this._stack[this._stack.length - 1].line = this._contractManager.getCurrentLine(); // this._contractLine;
 				}
 				if (this._breakpointFound || this._exceptionFound) {
 					this._stack = this._stack.slice(0, 2);
@@ -217,8 +209,8 @@ export class Runtime extends EventEmitter {
 						this._stack.unshift({
 							index: `${frame.index}`,
 							name: `${frame.description}(${1})`,
-							file: this._sourceFile,
-							line: this._currentLine,
+							file: this._contractManager.getSourceFile(),
+							line: this._contractManager.getCurrentLine(),
 							invalidVariables: true
 						});
 						this._variablesFrame.unshift(this._variables.slice())
@@ -228,8 +220,8 @@ export class Runtime extends EventEmitter {
 				this._stack.unshift({
 					index: '0',
 					name: `${frame.description}(${1})`,
-					file: this._sourceFile,
-					line: this._currentLine,
+					file: this._contractManager.getSourceFile(),
+					line: this._contractManager.getCurrentLine(),
 					invalidVariables: false
 
 				});
@@ -239,8 +231,8 @@ export class Runtime extends EventEmitter {
 				this._stack.shift();
 				this._variablesFrame.shift();
 			}
-			this._stack[0].line = this._currentLine;
-			this._stack[0].file = this._sourceFile;
+			this._stack[0].line = this._contractManager.getCurrentLine();
+			this._stack[0].file = this._contractManager.getSourceFile();
 		}
 		else if (msg['response']['type'] == "break") {
 			if (msg['status'] == 'ok') {
@@ -248,8 +240,10 @@ export class Runtime extends EventEmitter {
 			}
 		}
 		else if (msg['response']['type'] == "revert") {
-			this._sourceFile = msg['response']['code']['path']
-			this._currentLine = msg['response']['code']['line_index'];
+			// this._sourceFile = msg['response']['code']['path']
+			// this._currentLine = msg['response']['code']['line_index'];
+			this._contractManager.setOrUpdateContractSource(msg['response']['code']['path']);
+			this._contractManager.setContractLine(msg['response']['code']['line_index']);
 			let start = msg['response']['code']['line_pos'];
 			let end = start + msg['response']['code']['line_lenght'];
 			this._editorHelper.updateRange(start, end);
@@ -266,12 +260,14 @@ export class Runtime extends EventEmitter {
 		else if (msg['response']['type'] == 'step' || msg['response']['type'] == 'breakpoint') {
 			if (msg['status'] == 'ok') {
 				if (msg['response']['code']['path'] != null) {
-					this._sourceFile = msg['response']['code']['path']
-					this._currentLine = msg['response']['code']['line_index'];
+					//this._sourceFile = msg['response']['code']['path']
+					//this._currentLine = msg['response']['code']['line_index'];
+					this._contractManager.setOrUpdateContractSource(msg['response']['code']['path']);
+					this._contractManager.setContractLine(msg['response']['code']['line_index']);
 					let start = msg['response']['code']['line_pos']
 					let end = start + msg['response']['code']['line_lenght']
 					this._editorHelper.updateRange(start, end);
-					this._editorHelper.renderCodeInfo(this._currentLine);
+					this._editorHelper.renderCodeInfo(this._contractManager.getCurrentLine());
 				}
 			}
 			if (msg['response']['type'] == 'breakpoint') {
