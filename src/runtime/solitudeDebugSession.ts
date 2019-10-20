@@ -16,6 +16,11 @@ export class SolitudeDebugSession {
 	private _exceptionFound = false;
 	private _exceptionMessage: string;
 
+	constructor() {
+		this._stack = [];
+		this._variablesFrame = [];
+	}
+
 	public clearVariables() {
 		this._variables = [];
 	}
@@ -38,6 +43,7 @@ export class SolitudeDebugSession {
 	}
 
 	public addNewStackFrameIfPossible(frames: any[], contractSource: string, currentLine: number) {
+
 		for (let index = 0; index < this._stack.length; index++) {
 			this._stack[index].index = `${index + 1}`;
 		}
@@ -72,8 +78,8 @@ export class SolitudeDebugSession {
 	}
 
 	public updateContractSourceLineInTopStackFrame(contractSource: string, currentLine: number) {
-		this._stack[0].line = contractSource;
-		this._stack[0].file = currentLine;
+		this._stack[0].line = currentLine;
+		this._stack[0].file = contractSource;
 	}
 
 	public removeLastStackFrame() {
