@@ -173,6 +173,9 @@ export class Runtime extends EventEmitter {
 			else if (msg['response']['frames'].length < this._solitudeDebugSession.getStack().length) {
 				this._solitudeDebugSession.removeLastStackFrame();
 			}
+
+			this._solitudeDebugSession.updateStackFrame(msg['response']['frames']);
+
 			this._solitudeDebugSession.updateContractSourceLineInTopStackFrame(this._contractManager.getSourceFile(), this._contractManager.getCurrentLine())
 
 		}
