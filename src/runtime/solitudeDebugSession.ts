@@ -51,7 +51,7 @@ export class SolitudeDebugSession {
 				index: `${frame.index}`,
 				name: `${frame.description}(${1})`,
 				file: `${frame.code.unitname}`,
-				line: `${frame.code.line_index}`,
+				line: frame.code.line_index,
 				invalidVariables: true
 			});
 		}
