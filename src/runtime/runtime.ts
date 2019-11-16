@@ -167,12 +167,12 @@ export class Runtime extends EventEmitter {
 			// 	this._contractLine = this._currentLine;
 			// }
 
-			if (msg['response']['frames'].length > this._solitudeDebugSession.getStack().length) {
-				this._solitudeDebugSession.addNewStackFrameIfPossible(msg['response']['frames'], this._contractManager.getSourceFile(), this._contractManager.getCurrentLine());
-			}
-			else if (msg['response']['frames'].length < this._solitudeDebugSession.getStack().length) {
-				this._solitudeDebugSession.removeLastStackFrame();
-			}
+			// if (msg['response']['frames'].length > this._solitudeDebugSession.getStack().length) {
+			// 	this._solitudeDebugSession.addNewStackFrameIfPossible(msg['response']['frames'], this._contractManager.getSourceFile(), this._contractManager.getCurrentLine());
+			// }
+			// else if (msg['response']['frames'].length < this._solitudeDebugSession.getStack().length) {
+			// 	this._solitudeDebugSession.removeLastStackFrame();
+			// }
 
 			this._solitudeDebugSession.updateStackFrame(msg['response']['frames']);
 

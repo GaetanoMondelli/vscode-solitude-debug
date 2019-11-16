@@ -10,8 +10,7 @@ export class SolitudeDebugSession {
 	//private _breakPoints = new Map<string, SolitudeBreakpoint[]>();
 	private _variables: any[];
 	private _variablesFrame: any[];
-	public _stack: any[];
-	public _newstack: any[];
+	private _stack: any[];
 
 
 	private _breakpointFound = false;
@@ -20,7 +19,6 @@ export class SolitudeDebugSession {
 
 	constructor() {
 		this._stack = [];
-		this._newstack = []
 		this._variablesFrame = [];
 	}
 
@@ -46,10 +44,10 @@ export class SolitudeDebugSession {
 	}
 
 	public updateStackFrame(frames: any[]) {
-		this._newstack = [];
+		this._stack = [];
 		for (let index = frames.length-1; index >= 0; index--) {
 			let frame = frames.find(element => element.index == index);
-			this._newstack.unshift({
+			this._stack.unshift({
 				index: `${frame.index}`,
 				name: `${frame.description}(${1})`,
 				file: `${frame.code.unitname}`,
