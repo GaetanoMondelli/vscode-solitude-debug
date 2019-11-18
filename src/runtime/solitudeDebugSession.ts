@@ -6,14 +6,12 @@ export interface SolitudeBreakpoint {
 }
 
 export class SolitudeDebugSession {
-	//private _breakpointId = 1;
-	//private _breakPoints = new Map<string, SolitudeBreakpoint[]>();
+	private _breakpointId = 1;
+	private _breakPoints = new Map<string, SolitudeBreakpoint[]>();
+	private _breakpointFound = false;
 	private _variables: any[];
 	private _variablesFrame: any[];
 	private _stack: any[];
-
-
-	private _breakpointFound = false;
 	private _exceptionFound = false;
 	private _exceptionMessage: string;
 
@@ -45,7 +43,7 @@ export class SolitudeDebugSession {
 
 	public updateStackFrame(frames: any[]) {
 		this._stack = [];
-		for (let index = frames.length-1; index >= 0; index--) {
+		for (let index = frames.length - 1; index >= 0; index--) {
 			let frame = frames.find(element => element.index == index);
 			this._stack.unshift({
 				index: `${frame.index}`,
@@ -57,50 +55,9 @@ export class SolitudeDebugSession {
 		}
 	}
 
-
-	public addNewStackFrameIfPossible(frames: any[], contractSource: string, currentLine: number) {
-
-		for (let index = 0; index < this._stack.length; index++) {
-			this._stack[index].index = `${index + 1}`;
-		}
-		if (this._stack.length > 1) {
-			this._stack[this._stack.length - 1].file = contractSource; //this._contractManager.getSourceFile();// this._contractSource;
-			this._stack[this._stack.length - 1].line = currentLine; //this._contractManager.getCurrentLine(); // this._contractLine;
-		}
-		if (this._breakpointFound || this._exceptionFound) {
-			this._stack = this._stack.slice(0, 2);
-			this._stack[this._stack.length - 1].index = frames.length - 1
-			for (let index = frames.length - 2; index > 0; index--) {
-				let frame = frames.find(element => element.index == index);
-				this._stack.unshift({
-					index: `${frame.index}`,
-					name: `${frame.description}(${1})`,
-					file: contractSource,
-					line: currentLine,
-					invalidVariables: true
-				});
-				this._variablesFrame.unshift(this._variables.slice())
-			}
-		}
-		let frame = frames.find(element => element.index == 0);
-		this._stack.unshift({
-			index: '0',
-			name: `${frame.description}(${1})`,
-			file: contractSource,
-			line: currentLine,
-			invalidVariables: false
-		});
-		this._variablesFrame.unshift(this._variables)
-	}
-
 	public updateContractSourceLineInTopStackFrame(contractSource: string, currentLine: number) {
 		this._stack[0].line = currentLine;
 		this._stack[0].file = contractSource;
-	}
-
-	public removeLastStackFrame() {
-		this._stack.shift();
-		this._variablesFrame.shift();
 	}
 
 	public getStack(): any {
@@ -122,4 +79,59 @@ export class SolitudeDebugSession {
 	public getLastExceptionMessage() {
 		return this._exceptionMessage;
 	}
+
+	public setBreakpointFoundFlag() {
+		this._breakpointFound = true;
+	}
+
+	public isBreakpointFound() {
+		let breakpointFound = this._breakpointFound;
+		this._breakpointFound = false;
+		return breakpointFound;
+	}
+
+	public getBreakpoints(path: string) {
+		return this._breakPoints.get(path);
+	}
+
+	public addBreakpoint(path: string, line: number) : SolitudeBreakpoint {
+		const bp = <SolitudeBreakpoint>{ fullpath: path, verified: false, line, id: this._breakpointId++};
+		let bps = this.getBreakpoints(path);
+		let pathArray = path.split('/');
+		if (!bps) {
+			bps = new Array<SolitudeBreakpoint>();
+			this._breakPoints.set(pathArray[pathArray.length - 1], bps);
+		}
+		bps.push(bp);
+		return bp;
+	}
+
+	public clearBreakpoint(path: string) : SolitudeBreakpoint | undefined {
+		let bps = this._breakPoints.get(path);
+		if (bps) {
+			const bp = bps[0];
+			bps.splice(0, 1);
+			return bp;
+		}
+		return undefined;
+	}
+
+	public clearBreakpoints(path: string): void {
+		this._breakPoints.delete(path);
+	}
+
+	public getVerifiedBreakpoints(path: string, maxContractLineIndex: number): SolitudeBreakpoint[] {
+		let bps = this._breakPoints.get(path);
+		let verifiedBreakpoints = new Array<SolitudeBreakpoint>();
+		if (bps) {
+			bps.forEach(bp => {
+				if (!bp.verified && bp.line < maxContractLineIndex) {
+					bp.verified = true;
+					verifiedBreakpoints.push(bp);
+				}
+			});
+		}
+		return verifiedBreakpoints;
+	}
+
 }
