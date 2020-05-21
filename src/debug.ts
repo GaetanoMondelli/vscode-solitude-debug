@@ -1,7 +1,3 @@
-/*---------------------------------------------------------
- * Copyright (C) Microsoft Corporation. All rights reserved.
- *--------------------------------------------------------*/
-
 import {
 	Logger, logger,
 	LoggingDebugSession,
@@ -11,10 +7,10 @@ import {
 import { DebugProtocol } from 'vscode-debugprotocol';
 import { basename } from 'path';
 import { Runtime } from './runtime/runtime';
+
 const { Subject } = require('await-notify');
 
 interface LaunchRequestArguments extends DebugProtocol.LaunchRequestArguments {
-	/** An absolute path to the "program" to debug. */
 	program: string;
 	/** Automatically stop target after launch. If not specified, target does not stop. */
 	stopOnEntry?: boolean;
@@ -104,21 +100,16 @@ export class DebugSession extends LoggingDebugSession {
 	 */
 	protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
 
-		// build and return the capabilities of this debug adapter:
 		response.body = response.body || {};
-
-		// the adapter implements the configurationDoneRequest.
 		response.body.supportsConfigurationDoneRequest = true;
-
-		// make VS Code to use 'evaluate' when hovering over source
 		response.body.supportsEvaluateForHovers = true;
-
 		response.body.supportsFunctionBreakpoints = true;
-		// make VS Code to show a 'step back' button
-		//response.body.supportsStepBack = true;
+		response.body.supportsStepBack = false;
+		response.body.supportsStepInTargetsRequest = false;
+		response.body.supportsStepInTargetsRequest;
+		response.body.supportsExceptionInfoRequest = false;
+		response.body.supportsDelayedStackTraceLoading = true;
 
-		response.body.supportsExceptionInfoRequest = true;
-		//response.body.supportsDelayedStackTraceLoading = true;
 		this.sendResponse(response);
 
 	}

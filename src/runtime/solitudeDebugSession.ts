@@ -133,5 +133,4 @@ export class SolitudeDebugSession {
 		}
 		return verifiedBreakpoints;
 	}
-
 }

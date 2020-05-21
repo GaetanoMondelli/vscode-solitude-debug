@@ -1,7 +1,3 @@
-/*---------------------------------------------------------
- * Copyright (C) Microsoft Corporation. All rights reserved.
- *--------------------------------------------------------*/
-
 'use strict';
 
 import { safeLoad } from 'js-yaml';
@@ -11,7 +7,6 @@ import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken 
 import { DebugSession } from './debug';
 import * as Net from 'net';
 import { existsSync } from 'fs';
-
 import { post } from 'request';
 
 /*
@@ -20,6 +15,8 @@ import { post } from 'request';
  * Please note: the test suite does no longer work in this mode.
  */
 const EMBED_DEBUG_ADAPTER = true;
+const defaultEndpoint =  'http://127.0.0.1:8545';
+
 let workspaceFolder: string | undefined;
 let solitudeConfigFilePath: string;
 let endpoint: string;
@@ -84,10 +81,14 @@ function getTransactionReceipt(endpoint: string, txhash: String) {
 
 export async function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.commands.registerCommand('extension.solitude-debug.getTransaction', async config => {
-		endpoint = 'http://127.0.0.1:8545'
 		let solitudeConfigPath = solitudeConfigFilePath;
-		if (workspaceFolder && solitudeConfigPath == '${workspaceFolder}')
+		endpoint = defaultEndpoint;
+		if (workspaceFolder && solitudeConfigPath == '${workspaceFolder}') {
 			solitudeConfigPath = workspaceFolder
+		}
+		if (solitudeConfigPath === undefined) {
+			vscode.window.showErrorMessage("solitude.yaml was not found in the workspace, please open a valid workspace");
+		}
 		let options = safeLoad(readFileSync(solitudeConfigPath + '/solitude.yaml', 'utf8'))
 		if ('Client.Endpoint' in options) {
 			endpoint = options['Client.Endpoint'];
@@ -98,9 +99,9 @@ export async function activate(context: vscode.ExtensionContext) {
 		for (let blockIndex = Number(range[0]); blockIndex <= Number(range[1]); blockIndex++) {
 			let count = await getTransactionsCount(endpoint, blockIndex);
 			for (let txindex = 0; txindex < Number(count); txindex++) {
-				let txhash: any = await getTransaction(endpoint,blockIndex,txindex);
-				let isContractCreation =  await getTransactionReceipt(endpoint, txhash)
-				if (isContractCreation == null){
+				let txhash: any = await getTransaction(endpoint, blockIndex, txindex);
+				let isContractCreation = await getTransactionReceipt(endpoint, txhash)
+				if (isContractCreation == null) {
 					transactions.push(txhash);
 				}
 			}
