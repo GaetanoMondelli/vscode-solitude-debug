@@ -6,7 +6,7 @@ Debug a committed transaction using solitude by passing the Transaction Id.
 
 - npm install --save
 - npm run postinstall
-- npm compile
+- npm run compile
 
 ![Solitude Debug](images/debug.png)
 
