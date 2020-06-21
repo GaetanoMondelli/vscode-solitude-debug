@@ -1,4 +1,4 @@
-# Solitude Debug
+# Solitude Debug Dev guide
 
 Debug a committed transaction using solitude by passing the Transaction Id.
 

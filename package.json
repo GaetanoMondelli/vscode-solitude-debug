@@ -1,15 +1,16 @@
 {
   "name": "solitude-debug",
   "displayName": "Solitude Debug",
-  "version": "0.27.0",
+  "version": "0.28.0",
+  "icon": "icon128.png",
   "publisher": "gmondelli",
-  "description": "Debug a ethereum transaction using solitude",
+  "description": "Debug a ethereum transaction using solitude: https://solitude-ethereum.xyz",
   "author": {
-    "name": "Incerto"
+    "name": "N & Gaetano Mondelli"
   },
   "license": "MIT",
   "keywords": [
-    "multi-root ready"
+    "solidty"
   ],
   "engines": {
     "vscode": "^1.32.0",
