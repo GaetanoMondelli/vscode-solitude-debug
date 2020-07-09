@@ -36,11 +36,11 @@ We need now to tell vscode the python and solitude executable path. We will use 
 
 Open the VSCODE settings by pressing CTRL/CMD + SHIFT + p and select `Preferences: Open Settings UI`. In the search bar let's type Solitude and let's point the two fields to our executables. If we created the virtual environemtn in the dev folder the setting needs to look like it:
 
-<img class="img-responsive" src="images/services/settings.JPG" width="50%" alt="">
+<img class="img-responsive" src="https://raw.githubusercontent.com/GaetanoMondelli/vscode-solitude-debug/master/images/services/settings.JPG" width="50%" alt="">
 
 We navigate to the Debug vscode panel and we check we have a .vscode/launch.json file and a solitude configuration in it.
 
-<img class="img-responsive" src="images/services/launch.JPG" width="50%" alt="">
+<img class="img-responsive" src="https://raw.githubusercontent.com/GaetanoMondelli/vscode-solitude-debug/master/images/services/launch.JPG" width="50%" alt="">
 
 Before starting a debugging session we run the example script :
 ```bash
@@ -51,7 +51,7 @@ Finally we run the debugger pressing the green arrow `Transaction Hash Id` on th
 
 Visual code should prompt us with all the possible transaction we want to debug.
 
-<img class="img-responsive" src="images/services/selecttransaction.png" width="50%" alt="">
+<img class="img-responsive" src="https://raw.githubusercontent.com/GaetanoMondelli/vscode-solitude-debug/master/images/services/selecttransaction.png" width="50%" alt="">
 
 And we can now debug our transaction:
 

@@ -7,8 +7,6 @@ const _CONTINUE = { command: "continue", args: "" };
 const _SET_BREAKPOINT = (args: string) => { return { "command": "break", "args": [args] } };
 const _CLEAR_BREAKPOINT = (args: string) => { return { "command": "delete", "args": [args] } };
 
-//
-
 export class TaskQueue {
 	private _taskQueue: any[];
 
