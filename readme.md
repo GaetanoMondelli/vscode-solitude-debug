@@ -1,9 +1,11 @@
 # Solitude Debug
 
 #### Debug Transactions in Solitude with the VSCode Extension
-*Note: For now only Linux and WLS are supported*
+~~*Note: For now only Linux and WLS are supported*~~
 
-**This extension use the Solidity Framework please visit https://solitude-ethereum.xyz to know more**
+**Windows and Linux are supported!**
+
+**This extension use the Solidity Framework please visit https://solitude-ethereum.xyz to know more.**
 
 ![Alt Text](https://raw.githubusercontent.com/GaetanoMondelli/vscode-solitude-debug/master/images/demo.gif)
 

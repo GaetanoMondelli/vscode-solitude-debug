@@ -1,7 +1,7 @@
 {
   "name": "solitude-debug",
   "displayName": "Solitude Debug",
-  "version": "0.29.1",
+  "version": "0.30.0",
   "icon": "icon128.png",
   "publisher": "gmondelli",
   "description": "Debug a ethereum transaction using solitude: https://solitude-ethereum.xyz",
@@ -46,6 +46,7 @@
     "@types/node": "7.0.55",
     "@types/request": "^2.48.2",
     "await-notify": "1.0.1",
+    "file-uri-to-path": "^2.0.0",
     "fs": "0.0.1-security",
     "net": "^1.0.2",
     "python-shell": "^1.0.6",

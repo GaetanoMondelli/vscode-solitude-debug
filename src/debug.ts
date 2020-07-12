@@ -86,11 +86,15 @@ export class DebugSession extends LoggingDebugSession {
 		});
 	}
 
-	public setSolitudeConfigurationPath(path: string) {
-		this._runtime.setSolitudeConfigurationPath(path)
+	public setSolitudeConfigurationPath(path: string, linuxFolderFormat: boolean = true) {
+		this._runtime.setSolitudeConfigurationPath(path, linuxFolderFormat)
 	}
 
-	public setPyhtonPath(path: string) {
+	public setSolitudeConfigurationFolderPath(path: string) {
+		this._runtime.setSolitudeConfigurationFolderPath(path)
+	}
+
+	public setPythonPath(path: string) {
 		this._runtime.setPythonPath(path)
 	}
 

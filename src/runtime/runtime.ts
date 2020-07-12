@@ -12,7 +12,9 @@ export class Runtime extends EventEmitter {
 	private _contractManager = new ContractManager();
 	private _solitudeDebugSession = new SolitudeDebugSession();
 
+	private _solitudeConfigurationFolderPath: string;
 	private _solitudeConfigurationPath: string;
+
 	private _pythonPath: string;
 	private _shell;
 
@@ -30,9 +32,9 @@ export class Runtime extends EventEmitter {
 	}
 
 	public getPythonOptions(txHash: string) {
-		process.chdir(this._solitudeConfigurationPath);
+		process.chdir(this._solitudeConfigurationFolderPath);
 		type Modetype = "text" | "json" | "binary" | undefined
-		let path = this._solitudeConfigurationPath + '/solitude.yaml'
+		let path = this._solitudeConfigurationPath;
 		let params = ["--config", path, "debug", "--json", txHash]
 
 		return {
@@ -43,8 +45,13 @@ export class Runtime extends EventEmitter {
 		};
 	}
 
-	public setSolitudeConfigurationPath(path: string) {
-		this._solitudeConfigurationPath = path
+	public setSolitudeConfigurationPath(path: string, linuxFolderFormat: boolean = true) {
+		this._solitudeConfigurationPath = path;
+		this._contractManager.setLinuxFolderFormat(linuxFolderFormat);
+	}
+
+	public setSolitudeConfigurationFolderPath(path: string) {
+		this._solitudeConfigurationFolderPath = path;
 	}
 
 	public setPythonPath(path: string) {

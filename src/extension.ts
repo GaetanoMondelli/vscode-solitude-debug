@@ -6,7 +6,6 @@ import * as vscode from 'vscode';
 import { WorkspaceFolder, DebugConfiguration, ProviderResult, CancellationToken } from 'vscode';
 import { DebugSession } from './debug';
 import * as Net from 'net';
-import { existsSync } from 'fs';
 import { post } from 'request';
 
 /*
@@ -15,12 +14,18 @@ import { post } from 'request';
  * Please note: the test suite does no longer work in this mode.
  */
 const EMBED_DEBUG_ADAPTER = true;
-const defaultEndpoint =  'http://127.0.0.1:8545';
+const defaultEndpoint = 'http://127.0.0.1:8545';
 
 let workspaceFolder: string | undefined;
 let solitudeConfigFilePath: string;
 let endpoint: string;
 let transactions: any[];
+
+function convertPathToWindowFormat(path): string {
+	let replacement = '\\';
+	let winPath = path.replace(/\//g, replacement);
+	return winPath = winPath.slice(1);
+}
 
 function getBlockRange(endpoint: string): Promise<Array<Number>> {
 	return new Promise((resolve, reject) => {
@@ -84,12 +89,26 @@ export async function activate(context: vscode.ExtensionContext) {
 		let solitudeConfigPath = solitudeConfigFilePath;
 		endpoint = defaultEndpoint;
 		if (workspaceFolder && solitudeConfigPath == '${workspaceFolder}') {
-			solitudeConfigPath = workspaceFolder
+			solitudeConfigPath = workspaceFolder;
 		}
+
 		if (solitudeConfigPath === undefined) {
-			vscode.window.showErrorMessage("solitude.yaml was not found in the workspace, please open a valid workspace");
+			return vscode.window.showErrorMessage("solitude.yaml was not found in the workspace, please open a valid workspace");
 		}
-		let options = safeLoad(readFileSync(solitudeConfigPath + '/solitude.yaml', 'utf8'))
+		let options = {};
+
+		let path = solitudeConfigPath + '/solitude.yaml'
+		try {
+			options = safeLoad(readFileSync(path, 'utf8'))
+		}
+		catch (error) {
+			try {
+				options = safeLoad(readFileSync(convertPathToWindowFormat(path), 'utf8'));
+			}
+			catch{
+				return vscode.window.showErrorMessage(`Cannot load config file: ${path}`);
+			}
+		}
 		if ('Client.Endpoint' in options) {
 			endpoint = options['Client.Endpoint'];
 		}
@@ -161,12 +180,24 @@ class ConfigurationProvider implements vscode.DebugConfigurationProvider {
 				this._server = Net.createServer(socket => {
 					const session = new DebugSession();
 					session.setRunAsServer(true);
-					let solitudeConfigPath = '';
-					if (folder) {
-						solitudeConfigPath = this.setSolitudePreference(config, session, folder.uri.path) + '/solitude.yaml'
+					let solitudeConfigFolderPath = '';
+					 if (folder) {
+						solitudeConfigFolderPath = config.solitudeConfigPath;
+						if ((!solitudeConfigFolderPath || solitudeConfigFolderPath == '' || solitudeConfigFolderPath == "${workspaceFolder}")
+						 && workspaceFolder != undefined) {
+							solitudeConfigFolderPath = workspaceFolder;
+						}
+						try {
+							this.setSolitudePreference(session, solitudeConfigFolderPath);
+						}
+						catch{
+							return vscode.window.showErrorMessage(`Cannot load config file`);
+						}
+
+						this.setPythonPreference(session);
 					}
-					if (solitudeConfigPath == '' || !existsSync(solitudeConfigPath)) {
-						return vscode.window.showErrorMessage(`Configuration cannot be found: ${solitudeConfigPath}. Please check solitude settings.`)
+					else {
+						return vscode.window.showErrorMessage(`Configuration cannot be found in the workspacefolder`)
 					}
 					session.start(<NodeJS.ReadableStream>socket, socket);
 				}).listen(0);
@@ -175,21 +206,28 @@ class ConfigurationProvider implements vscode.DebugConfigurationProvider {
 			// make VS Code connect to debug server instead of launching debug adapter
 			config.debugServer = this._server.address().port;
 		}
-
 		return config
 	}
 
-	setSolitudePreference(debugConfig: DebugConfiguration, session: DebugSession, workspaceFolder: string): string {
-		let config = vscode.workspace.getConfiguration('solitude-exstension-debugger');
-		session.setPyhtonPath(config['pythonPath'])
-		let path = debugConfig.solitudeConfigPath;
 
-		if (!path || path == '' || path == "${workspaceFolder}") {
-			path = workspaceFolder
+	setSolitudePreference(session: DebugSession, solitudeConfigPathLinuxStyle: string) {
+		try {
+			safeLoad(readFileSync(solitudeConfigPathLinuxStyle + '/solitude.yaml', 'utf8'))
+			session.setSolitudeConfigurationFolderPath(solitudeConfigPathLinuxStyle);
+			session.setSolitudeConfigurationPath(solitudeConfigPathLinuxStyle + '/solitude.yaml', true)
 		}
+		catch (error) {
+			let solitudeConfigPathWindowsStyle = convertPathToWindowFormat(solitudeConfigPathLinuxStyle);
+			safeLoad(readFileSync(solitudeConfigPathWindowsStyle + '\\solitude.yaml', 'utf8'))
+			session.setSolitudeConfigurationFolderPath(solitudeConfigPathWindowsStyle);
+			session.setSolitudeConfigurationPath(solitudeConfigPathWindowsStyle + '\\solitude.yaml', false)
+		}
+	}
 
-		session.setSolitudeConfigurationPath(path)
-		return path;
+
+	setPythonPreference(session: DebugSession): any {
+		let config = vscode.workspace.getConfiguration('solitude-exstension-debugger');
+		session.setPythonPath(config['pythonPath'])
 	}
 
 
