@@ -7,6 +7,8 @@
 
 **This extension use the Solidity Framework please visit https://solitude-ethereum.xyz to know more.**
 
+**Updated version of this guide: https://solitude-ethereum.xyz/**
+
 ![Alt Text](https://raw.githubusercontent.com/GaetanoMondelli/vscode-solitude-debug/master/images/demo.gif)
 
 
@@ -26,7 +28,7 @@ Create a python3 virtual environment and activate it. Install solitude.
 ```bash
 python3 -mvenv myenv
 source myenv/bin/activate
-pip install git+https://github.com/incerto-crypto/solitude.git
+pip install git+https://github.com/incerto-crypto/solitude.git@develop
 ```
 
 Let's open the [solitude\_examples/e04\_cat\_shelter](https://github.com/incerto-crypto/solitude-examples/tree/master/examples/e04_erc20_debug) folder.
