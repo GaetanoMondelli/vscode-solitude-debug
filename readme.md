@@ -5,9 +5,8 @@
 
 **Windows and Linux are supported!**
 
-**This extension use the Solidity Framework please visit https://solitude-ethereum.xyz to know more.**
+**This extension use the Solidity Framework please visit https://solitude-ethereum.xyz for an update and complete version of this guide**
 
-**Updated version of this guide: https://solitude-ethereum.xyz/**
 
 ![Alt Text](https://raw.githubusercontent.com/GaetanoMondelli/vscode-solitude-debug/master/images/demo.gif)
 
