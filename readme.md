@@ -1,6 +1,12 @@
 # Solitude Debug
 
 #### Debug Transactions in Solitude with the VSCode Extension
+
+🆕  **🧑🏽‍🤝‍🧑🏽 JOIN THE [SOLITUDE DEV COMMUNITY ON DISCORD](https://discord.gg/HUJw3QY) for:**
+ - propose new features
+ - report a bug
+ - get involved in the development
+
 ~~*Note: For now only Linux and WLS are supported*~~
 
 **Windows and Linux are supported!**
